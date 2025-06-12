@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  stadium-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: xiinthanh/pe-stadiumbookingbe:latest
+    ports:
+      - "8080:8080"
+    environment:
+      POSTGRES_URL_TRANSACTION_POOLER: ${POSTGRES_URL_TRANSACTION_POOLER}
+      POSTGRES_USERNAME: ${POSTGRES_USERNAME}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      NEXTAUTH_URL: ${NEXTAUTH_URL}
+    restart: unless-stopped
+
