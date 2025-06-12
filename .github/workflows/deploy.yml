@@ -51,10 +51,10 @@ jobs:
             docker stop stadium-app || true
             docker rm stadium-app || true
             docker run -d --name stadium-app -p 80:8080 \
-              -e POSTGRES_URL_TRANSACTION_POOLER=${{ secrets.POSTGRES_URL_TRANSACTION_POOLER }} \
-              -e POSTGRES_USERNAME=${{ secrets.POSTGRES_USERNAME }} \
-              -e POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} \
-              -e GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }} \
-              -e GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }} \
-              -e NEXTAUTH_URL=${{ secrets.NEXTAUTH_URL }} \
+              -e POSTGRES_URL_TRANSACTION_POOLER="${{ secrets.POSTGRES_URL_TRANSACTION_POOLER }}" \
+              -e POSTGRES_USERNAME="${{ secrets.POSTGRES_USERNAME }}" \
+              -e POSTGRES_PASSWORD="${{ secrets.POSTGRES_PASSWORD }}" \
+              -e GOOGLE_CLIENT_ID="${{ secrets.GOOGLE_CLIENT_ID }}" \
+              -e GOOGLE_CLIENT_SECRET="${{ secrets.GOOGLE_CLIENT_SECRET }}" \
+              -e NEXTAUTH_URL="${{ secrets.NEXTAUTH_URL }}" \
               ${{ secrets.DOCKERHUB_USERNAME }}/pe-stadiumbookingbe
