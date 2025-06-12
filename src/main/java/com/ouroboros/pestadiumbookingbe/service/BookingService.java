@@ -5,6 +5,8 @@ import com.ouroboros.pestadiumbookingbe.repository.BookingRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class BookingService {
 
@@ -14,5 +16,9 @@ public class BookingService {
     public Booking createBooking(Booking booking) {
         booking.setStatus("pending");
         return bookingRepository.save(booking);
+    }
+
+    public List<Booking> getAllBookings() {
+        return bookingRepository.findAll();
     }
 }

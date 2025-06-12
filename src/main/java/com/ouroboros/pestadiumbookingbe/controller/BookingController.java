@@ -8,15 +8,22 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @RestController
-@RequestMapping("/api/create-booking")
+@RequestMapping("/api/bookings")
 public class BookingController {
 
     @Autowired
     private BookingService bookingService;
 
-    @PostMapping
+    @RequestMapping("/create-booking")
     public Booking createBooking(@RequestBody Booking booking) {
         return bookingService.createBooking(booking);
+    }
+
+    @RequestMapping("/get-bookings")
+    public List<Booking> getAllBookings() {
+        return bookingService.getAllBookings();
     }
 }
