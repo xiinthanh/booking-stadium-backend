@@ -6,6 +6,7 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
+
 @Entity
 @Table(name = "bookings", uniqueConstraints = {
     @UniqueConstraint(columnNames = {"sportHallId", "bookingDate", "timeSlotId"})
