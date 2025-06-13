@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/bookings")
@@ -26,6 +27,11 @@ public class BookingController {
             bookingRequest.getTimeSlotId(),
             bookingRequest.getPurpose()
         );
+    }
+
+    @PostMapping("/cancel-booking")
+    public ResponseEntity<?> cancelBooking(@RequestParam UUID bookingId, @RequestParam UUID canceledBy) {
+        return bookingService.cancelBooking(bookingId, canceledBy);
     }
 
     @GetMapping("/get-bookings")

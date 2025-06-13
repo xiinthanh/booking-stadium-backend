@@ -8,7 +8,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "bookings", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"sportHallId", "bookingDate", "timeSlotId"})
+    @UniqueConstraint(columnNames = {"sport_hall_id", "booking_date", "time_slot_id"})
 })
 public class Booking {
     @Id
@@ -16,7 +16,7 @@ public class Booking {
     @Column(columnDefinition = "uuid", updatable = false, nullable = false)
     private UUID id;
 
-    @Column(name = "sportHallId", nullable = false)
+    @Column(name = "sport_hall_id", nullable = false)
     private UUID sportHallId;
 
     @Column(name = "sportId", nullable = false)
@@ -25,10 +25,10 @@ public class Booking {
     @Column(name = "userId", nullable = false)
     private UUID userId;
 
-    @Column(name = "bookingDate", nullable = false)
+    @Column(name = "booking_date", nullable = false)
     private LocalDate bookingDate;
 
-    @Column(name = "timeSlotId", nullable = false)
+    @Column(name = "time_slot_id", nullable = false)
     private UUID timeSlotId;
 
     @Column(nullable = false)
@@ -38,8 +38,14 @@ public class Booking {
     private String purpose;
 
     @Enumerated(EnumType.STRING)
-    @Column(columnDefinition = "text", nullable = false)
+    @Column(name = "status", nullable = false)
     private Status status = Status.PENDING;
+
+    @Column(name = "canceled_at")
+    private OffsetDateTime canceledAt;
+
+    @Column(name = "canceled_by")
+    private UUID canceledBy;
 
     @Column(name = "totalCost", precision = 10, scale = 2)
     private BigDecimal totalCost = BigDecimal.ZERO;
@@ -47,10 +53,10 @@ public class Booking {
     @Column(name = "specialRequirements", columnDefinition = "text")
     private String specialRequirements;
 
-    @Column(name = "createdAt", columnDefinition = "timestamp with time zone")
+    @Column(name = "created_at", columnDefinition = "timestamp with time zone")
     private OffsetDateTime createdAt = OffsetDateTime.now();
 
-    @Column(name = "updatedAt", columnDefinition = "timestamp with time zone")
+    @Column(name = "updated_at", columnDefinition = "timestamp with time zone")
     private OffsetDateTime updatedAt = OffsetDateTime.now();
 
     // Getters and setters
@@ -80,6 +86,12 @@ public class Booking {
 
     public Status getStatus() { return status; }
     public void setStatus(Status status) { this.status = status; }
+
+    public OffsetDateTime getCanceledAt() { return canceledAt; }
+    public void setCanceledAt(OffsetDateTime canceledAt) { this.canceledAt = canceledAt; }
+
+    public UUID getCanceledBy() { return canceledBy; }
+    public void setCanceledBy(UUID canceledBy) { this.canceledBy = canceledBy; }
 
     public BigDecimal getTotalCost() { return totalCost; }
     public void setTotalCost(BigDecimal totalCost) { this.totalCost = totalCost; }

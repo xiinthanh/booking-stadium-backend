@@ -20,13 +20,14 @@ public class SportHall {
     private String description;
 
     @Column(nullable = false)
-    private String location;
+    @Enumerated(EnumType.STRING)
+    private SportHallLocation location;
 
     @Column(nullable = false)
     private Integer capacity;
 
     @Column(name = "hourly_rate", precision = 10, scale = 2)
-    private BigDecimal hourlyRate;
+    private BigDecimal hourlyRate = BigDecimal.ZERO;
 
     private Boolean active;
 
@@ -61,11 +62,11 @@ public class SportHall {
         this.description = description;
     }
 
-    public String getLocation() {
+    public SportHallLocation getLocation() {
         return location;
     }
 
-    public void setLocation(String location) {
+    public void setLocation(SportHallLocation location) {
         this.location = location;
     }
 
