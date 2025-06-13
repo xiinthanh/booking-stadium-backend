@@ -39,7 +39,7 @@ public class Booking {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
-    private Status status = Status.PENDING;
+    private Status status = Status.pending;
 
     @Column(name = "canceled_at")
     private OffsetDateTime canceledAt;
