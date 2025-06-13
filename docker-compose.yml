@@ -1,21 +1,23 @@
 services:
-  stadium-app:
+  stadium-app-local:
     build:
       context: .
       dockerfile: Dockerfile
     image: pe-stadiumbookingbe:latest
     ports:
-      - "8080:8080"
+      - "80:8080"
     environment:
-      POSTGRES_USERNAME: ${POSTGRES_USERNAME}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
-      NEXTAUTH_URL: ${NEXTAUTH_URL}
+      - POSTGRES_USERNAME=${POSTGRES_USERNAME}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - NEXTAUTH_URL=${NEXTAUTH_URL}
+    env_file:
+      - .env
     restart: unless-stopped
 
 x-pre-build:
-  stadium-app:
+  stadium-app-local:
     pre_build:
       - docker stop stadium-app || true
       - docker rm stadium-app || true
