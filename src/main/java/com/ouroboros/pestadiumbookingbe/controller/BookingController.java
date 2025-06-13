@@ -1,12 +1,11 @@
 package com.ouroboros.pestadiumbookingbe.controller;
 
 import com.ouroboros.pestadiumbookingbe.model.Booking;
+import com.ouroboros.pestadiumbookingbe.model.BookingRequest;
 import com.ouroboros.pestadiumbookingbe.service.BookingService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -17,12 +16,19 @@ public class BookingController {
     @Autowired
     private BookingService bookingService;
 
-    @RequestMapping("/create-booking")
-    public Booking createBooking(@RequestBody Booking booking) {
-        return bookingService.createBooking(booking);
+    @PostMapping("/create-booking")
+    public ResponseEntity<?> createBooking(@RequestBody BookingRequest bookingRequest) {
+        // Delegate to the service layer
+        return bookingService.createBooking(
+            bookingRequest.getUserId(),
+            bookingRequest.getSportHallId(),
+            bookingRequest.getDate(),
+            bookingRequest.getTimeSlotId(),
+            bookingRequest.getPurpose()
+        );
     }
 
-    @RequestMapping("/get-bookings")
+    @GetMapping("/get-bookings")
     public List<Booking> getAllBookings() {
         return bookingService.getAllBookings();
     }

@@ -1,11 +1,16 @@
 package com.ouroboros.pestadiumbookingbe.service;
 
 import com.ouroboros.pestadiumbookingbe.model.Booking;
+import com.ouroboros.pestadiumbookingbe.model.Status;
 import com.ouroboros.pestadiumbookingbe.repository.BookingRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class BookingService {
@@ -13,9 +18,29 @@ public class BookingService {
     @Autowired
     private BookingRepository bookingRepository;
 
-    public Booking createBooking(Booking booking) {
-        booking.setStatus("pending");
-        return bookingRepository.save(booking);
+    public ResponseEntity<?> createBooking(UUID userId, UUID sportHallId, LocalDate date, UUID timeSlotId, String purpose) {
+        // Check if a booking with the same combination and status exists
+        if (bookingRepository.existsBySportHallIdAndBookingDateAndTimeSlotIdAndStatus(
+                sportHallId, date, timeSlotId, Status.CONFIRMED) ||
+            bookingRepository.existsBySportHallIdAndBookingDateAndTimeSlotIdAndStatus(
+                sportHallId, date, timeSlotId, Status.COMPLETED)) {
+            return ResponseEntity.badRequest().body("A booking already exists for the given combination with a confirmed or completed status.");
+        }
+
+        // Create and save the new booking
+        Booking booking = new Booking();
+        booking.setUserId(userId);
+        booking.setSportHallId(sportHallId);
+        booking.setBookingDate(date);
+        booking.setTimeSlotId(timeSlotId);
+        booking.setStatus(Status.PENDING);
+        booking.setPurpose(purpose);
+
+        booking.setCreatedAt(OffsetDateTime.now());
+        booking.setUpdatedAt(OffsetDateTime.now());
+
+        Booking savedBooking = bookingRepository.save(booking);
+        return ResponseEntity.ok(savedBooking);
     }
 
     public List<Booking> getAllBookings() {

@@ -6,12 +6,10 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
-
 @Entity
 @Table(name = "bookings", uniqueConstraints = {
     @UniqueConstraint(columnNames = {"sportHallId", "bookingDate", "timeSlotId"})
 })
-
 public class Booking {
     @Id
     @GeneratedValue
@@ -39,8 +37,9 @@ public class Booking {
     @Column(columnDefinition = "text")
     private String purpose;
 
+    @Enumerated(EnumType.STRING)
     @Column(columnDefinition = "text", nullable = false)
-    private String status = "pending";
+    private Status status = Status.PENDING;
 
     @Column(name = "totalCost", precision = 10, scale = 2)
     private BigDecimal totalCost = BigDecimal.ZERO;
@@ -79,8 +78,8 @@ public class Booking {
     public String getPurpose() { return purpose; }
     public void setPurpose(String purpose) { this.purpose = purpose; }
 
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
+    public Status getStatus() { return status; }
+    public void setStatus(Status status) { this.status = status; }
 
     public BigDecimal getTotalCost() { return totalCost; }
     public void setTotalCost(BigDecimal totalCost) { this.totalCost = totalCost; }
