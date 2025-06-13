@@ -28,6 +28,11 @@ public class TimeSlot {
     @Column(name = "updated_at")
     private Instant updatedAt;
 
+    @PrePersist
+    protected void onCreate() {
+        updatedAt = Instant.now();
+    }
+
     // Getters and setters
     public UUID getId() {
         return id;

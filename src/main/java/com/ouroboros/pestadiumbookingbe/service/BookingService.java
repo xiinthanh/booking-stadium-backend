@@ -21,9 +21,7 @@ public class BookingService {
     public ResponseEntity<?> createBooking(UUID userId, UUID sportHallId, LocalDate date, UUID timeSlotId, String purpose) {
         // Check if a booking with the same combination and status exists
         if (bookingRepository.existsBySportHallIdAndBookingDateAndTimeSlotIdAndStatus(
-                sportHallId, date, timeSlotId, Status.CONFIRMED) ||
-            bookingRepository.existsBySportHallIdAndBookingDateAndTimeSlotIdAndStatus(
-                sportHallId, date, timeSlotId, Status.COMPLETED)) {
+                sportHallId, date, timeSlotId, Status.CONFIRMED)) {
             return ResponseEntity.badRequest().body("A booking already exists for the given combination with a confirmed or completed status.");
         }
 
@@ -45,5 +43,24 @@ public class BookingService {
 
     public List<Booking> getAllBookings() {
         return bookingRepository.findAll();
+    }
+
+    public ResponseEntity<?> cancelBooking(UUID bookingId, UUID canceledBy) {
+        Booking booking = bookingRepository.findById(bookingId).orElse(null);
+
+        if (booking == null) {
+            return ResponseEntity.badRequest().body("Booking not found.");
+        }
+
+        if (booking.getStatus() != Status.PENDING) {
+            return ResponseEntity.badRequest().body("Only pending bookings can be canceled.");
+        }
+
+        booking.setCanceledAt(OffsetDateTime.now());
+        booking.setCanceledBy(canceledBy);
+        booking.setStatus(Status.REJECTED);
+
+        Booking updatedBooking = bookingRepository.save(booking);
+        return ResponseEntity.ok(updatedBooking);
     }
 }

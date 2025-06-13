@@ -15,7 +15,8 @@ public class Profile {
     private String email;
 
     @Column(nullable = false)
-    private String type;
+    @Enumerated(EnumType.STRING)
+    private ProfileType type;
 
     @Column(name = "full_name")
     private String fullName;
@@ -30,6 +31,16 @@ public class Profile {
 
     @Column(name = "updated_at")
     private Instant updatedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = Instant.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = Instant.now();
+    }
 
     // Getters and setters
     public UUID getId() {
@@ -48,11 +59,11 @@ public class Profile {
         this.email = email;
     }
 
-    public String getType() {
+    public ProfileType getType() {
         return type;
     }
 
-    public void setType(String type) {
+    public void setType(ProfileType type) {
         this.type = type;
     }
 
