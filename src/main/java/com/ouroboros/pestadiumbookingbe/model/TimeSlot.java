@@ -25,9 +25,6 @@ public class TimeSlot {
 
     private Boolean active;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
-
     @Column(name = "updated_at")
     private Instant updatedAt;
 
@@ -70,14 +67,6 @@ public class TimeSlot {
 
     public void setActive(Boolean active) {
         this.active = active;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(Instant createdAt) {
-        this.createdAt = createdAt;
     }
 
     public Instant getUpdatedAt() {
