@@ -23,3 +23,4 @@ public class SwaggerConfig {
                         .description("API documentation for PE Stadium Booking application"));
     }
 }
+
