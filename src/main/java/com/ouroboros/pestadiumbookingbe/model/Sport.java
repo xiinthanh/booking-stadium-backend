@@ -2,7 +2,7 @@ package com.ouroboros.pestadiumbookingbe.model;
 
 import jakarta.persistence.*;
 import java.util.UUID;
-import java.time.OffsetDateTime;
+import java.time.Instant;
 
 @Entity
 @Table(name = "sports")
@@ -19,8 +19,11 @@ public class Sport {
     private String icon;
     private Boolean active;
 
-    @Column(name = "created_at")
-    private OffsetDateTime createdAt;
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
+
+    @Column(name = "updated_at")
+    private Instant updatedAt;
 
     // Getters and setters
     public UUID getId() { return id; }
@@ -33,7 +36,9 @@ public class Sport {
     public void setIcon(String icon) { this.icon = icon; }
     public Boolean getActive() { return active; }
     public void setActive(Boolean active) { this.active = active; }
-    public OffsetDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }
+    public Instant getCreatedAt() { return createdAt; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+    public Instant getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
 }
 
