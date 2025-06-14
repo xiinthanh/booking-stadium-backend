@@ -50,7 +50,9 @@ jobs:
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/pe-stadiumbookingbe
             docker stop stadium-app || true
             docker rm stadium-app || true
-            docker run -d --name stadium-app -p 443:8443 -p 80:8080 \
+            docker run -d --name stadium-app \
+              -v /opt/ssl/keystore.p12:/opt/ssl/keystore.p12 \
+              -p 443:8443 -p 80:8080 \
               -e POSTGRES_URL_TRANSACTION_POOLER="${{ secrets.POSTGRES_URL_TRANSACTION_POOLER }}" \
               -e POSTGRES_USERNAME="${{ secrets.POSTGRES_USERNAME }}" \
               -e POSTGRES_PASSWORD="${{ secrets.POSTGRES_PASSWORD }}" \
