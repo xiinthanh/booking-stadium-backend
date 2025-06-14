@@ -38,4 +38,10 @@ public class BookingController {
     public List<Booking> getAllBookings() {
         return bookingService.getAllBookings();
     }
+
+    @GetMapping("/get-booking/{id}")
+    public Booking getBookingById(@PathVariable UUID id) {
+        return bookingService.getBookingById(id);
+    }
+
 }

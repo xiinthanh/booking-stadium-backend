@@ -63,4 +63,8 @@ public class BookingService {
         Booking updatedBooking = bookingRepository.save(booking);
         return ResponseEntity.ok(updatedBooking);
     }
+
+    public Booking getBookingById(UUID id) {
+        return bookingRepository.findById(id).orElse(null);
+    }
 }
