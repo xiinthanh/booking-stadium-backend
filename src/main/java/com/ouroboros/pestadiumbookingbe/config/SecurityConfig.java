@@ -31,5 +31,5 @@ public class SecurityConfig {
                         .allowCredentials(true);
             }
         };
-    }   
+    }
 }
