@@ -5,8 +5,7 @@ services:
       dockerfile: Dockerfile
     image: pe-stadiumbookingbe:latest
     ports:
-      - "8443:8443" # HTTPS port
-      - "8080:8080" # HTTP port
+      - "443:8443" # HTTPS port
     environment:
       - POSTGRES_USERNAME=${POSTGRES_USERNAME}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
@@ -16,6 +15,9 @@ services:
       - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
       - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
       - KEYSTORE_PASSWORD=${KEYSTORE_PASSWORD}
+      - KEYSTORE_PATH=${KEYSTORE_PATH}
+    volumes:
+      - ./keystore.p12:/app/keystore.p12
     env_file:
       - .env
     restart: unless-stopped
