@@ -6,6 +6,7 @@ import java.util.UUID;
 public class BookingRequest {
     private UUID userId;
     private UUID sportHallId;
+    private UUID sportId;
     private LocalDate date;
     private UUID timeSlotId;
     private String purpose;
@@ -49,5 +50,13 @@ public class BookingRequest {
 
     public void setPurpose(String purpose) {
         this.purpose = purpose;
+    }
+
+    public UUID getSportId() {
+        return sportId;
+    }
+
+    public void setSportId(UUID sportId) {
+        this.sportId = sportId;
     }
 }

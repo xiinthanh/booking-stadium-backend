@@ -3,7 +3,10 @@ package com.ouroboros.pestadiumbookingbe.service;
 import com.ouroboros.pestadiumbookingbe.model.Booking;
 import com.ouroboros.pestadiumbookingbe.model.Status;
 import com.ouroboros.pestadiumbookingbe.repository.BookingRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
@@ -15,30 +18,57 @@ import java.util.UUID;
 @Service
 public class BookingService {
 
+    private static final Logger logger = LoggerFactory.getLogger(BookingService.class);
+
     @Autowired
     private BookingRepository bookingRepository;
 
-    public ResponseEntity<?> createBooking(UUID userId, UUID sportHallId, LocalDate date, UUID timeSlotId, String purpose) {
+    public ResponseEntity<?> createBooking(UUID userId, UUID sportHallId, UUID sportId, LocalDate date, UUID timeSlotId, String purpose) {
+        logger.info("Creating booking for userId: {}, sportHallId: {}, date: {}, timeSlotId: {}, purpose: {}", userId, sportHallId, date, timeSlotId, purpose);
+
+        // Validate input parameters
+        if (userId == null || sportHallId == null || date == null || timeSlotId == null || purpose == null || purpose.isEmpty()) {
+            logger.error("Invalid input parameters: userId={}, sportHallId={}, date={}, timeSlotId={}, purpose={}", userId, sportHallId, date, timeSlotId, purpose);
+            return ResponseEntity.badRequest().body("Invalid input parameters.");
+        }
+
+        if (date.isBefore(LocalDate.now())) {
+            logger.error("Invalid booking date: {}. Date cannot be in the past.", date);
+            return ResponseEntity.badRequest().body("Booking date cannot be in the past.");
+        }
+
         // Check if a booking with the same combination and status exists
-        if (bookingRepository.existsBySportHallIdAndBookingDateAndTimeSlotIdAndStatus(
-                sportHallId, date, timeSlotId, Status.confirmed)) {
-            return ResponseEntity.badRequest().body("A booking already exists for the given combination with a confirmed or completed status.");
+        try {
+            if (bookingRepository.existsBySportHallIdAndBookingDateAndTimeSlotIdAndStatus(
+                    sportHallId, date, timeSlotId, Status.confirmed)) {
+                logger.warn("Booking already exists for sportHallId: {}, date: {}, timeSlotId: {} with confirmed status", sportHallId, date, timeSlotId);
+                return ResponseEntity.badRequest().body("A booking already exists for the given combination with a confirmed or completed status.");
+            }
+        } catch (Exception e) {
+            logger.error("Error checking existing bookings: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred while checking existing bookings.");
         }
 
         // Create and save the new booking
-        Booking booking = new Booking();
-        booking.setUserId(userId);
-        booking.setSportHallId(sportHallId);
-        booking.setBookingDate(date);
-        booking.setTimeSlotId(timeSlotId);
-        booking.setStatus(Status.pending);
-        booking.setPurpose(purpose);
+        try {
+            Booking booking = new Booking();
+            booking.setUserId(userId);
+            booking.setSportHallId(sportHallId);
+            booking.setSportId(sportId);
+            booking.setBookingDate(date);
+            booking.setTimeSlotId(timeSlotId);
+            booking.setStatus(Status.pending);
+            booking.setPurpose(purpose);
+            booking.setCreatedAt(OffsetDateTime.now());
+            booking.setUpdatedAt(OffsetDateTime.now());
 
-        booking.setCreatedAt(OffsetDateTime.now());
-        booking.setUpdatedAt(OffsetDateTime.now());
-
-        Booking savedBooking = bookingRepository.save(booking);
-        return ResponseEntity.ok(savedBooking);
+            Booking savedBooking = bookingRepository.save(booking);
+            logger.info("Booking created successfully for userId: {}, sportHallId: {}, date: {}, timeSlotId: {}", userId, sportHallId, date, timeSlotId);
+            return ResponseEntity.ok(savedBooking);
+        } catch (Exception e) {
+            logger.error("Error creating booking: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred while creating the booking.");
+        }
     }
 
     public List<Booking> getAllBookings() {

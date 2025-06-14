@@ -23,6 +23,7 @@ public class BookingController {
         return bookingService.createBooking(
             bookingRequest.getUserId(),
             bookingRequest.getSportHallId(),
+            bookingRequest.getSportId(),
             bookingRequest.getDate(),
             bookingRequest.getTimeSlotId(),
             bookingRequest.getPurpose()
