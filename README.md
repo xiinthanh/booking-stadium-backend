@@ -4,6 +4,10 @@
 
 ``` docker compose up -d --build ```
 
-``` hosted on: http://localhost/ ```
+``` access locally: https://localhost/ ```
 
-``` swagger ui: http://localhost/swagger-ui/index.html ```
+``` swagger ui: https://localhost/swagger-ui/index.html ```
+
+# Hosting
+
+https://api-stadium-booking.systems/swagger-ui/index.html#/
