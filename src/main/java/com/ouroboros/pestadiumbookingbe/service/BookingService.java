@@ -52,8 +52,8 @@ public class BookingService {
             return ResponseEntity.badRequest().body("Booking not found.");
         }
 
-        if (booking.getStatus() != Status.pending) {
-            return ResponseEntity.badRequest().body("Only pending bookings can be canceled.");
+        if (booking.getStatus() != Status.pending && booking.getStatus() != Status.confirmed) {
+            return ResponseEntity.badRequest().body("Only pending/confirmed bookings can be canceled.");
         }
 
         booking.setCanceledAt(OffsetDateTime.now());
@@ -66,5 +66,42 @@ public class BookingService {
 
     public Booking getBookingById(UUID id) {
         return bookingRepository.findById(id).orElse(null);
+    }
+
+    public List<Booking> getBookingsByUserId(UUID userId) {
+        return bookingRepository.findAll().stream()
+                .filter(booking -> booking.getUserId().equals(userId))
+                .toList();
+    }
+
+    public ResponseEntity<?> confirmBooking(UUID bookingId, UUID confirmedBy) {
+        Booking booking = bookingRepository.findById(bookingId).orElse(null);
+        if (booking == null) {
+            return ResponseEntity.badRequest().body("Booking not found.");
+        }
+        if (booking.getStatus() != Status.pending) {
+            return ResponseEntity.badRequest().body("Only pending bookings can be confirmed.");
+        }
+        booking.setStatus(Status.confirmed);
+        booking.setUpdatedAt(OffsetDateTime.now());
+        booking.setCanceledAt(null);
+        booking.setCanceledBy(null);
+        Booking updatedBooking = bookingRepository.save(booking);
+
+        // reject all other bookings for the same sport hall, date, and time slot
+        bookingRepository.findAll().stream()
+                .filter(b -> b.getSportHallId().equals(booking.getSportHallId()) &&
+                             b.getBookingDate().equals(booking.getBookingDate()) &&
+                             b.getTimeSlotId().equals(booking.getTimeSlotId()) &&
+                             !b.getId().equals(bookingId) &&
+                             (b.getStatus() == Status.pending || b.getStatus() == Status.confirmed))
+                .forEach(b -> {
+                    b.setStatus(Status.rejected);
+                    b.setCanceledAt(OffsetDateTime.now());
+                    b.setCanceledBy(confirmedBy);
+                    bookingRepository.save(b);
+                });
+
+        return ResponseEntity.ok(updatedBooking);
     }
 }

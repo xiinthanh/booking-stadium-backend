@@ -34,6 +34,11 @@ public class BookingController {
         return bookingService.cancelBooking(bookingId, canceledBy);
     }
 
+    @PostMapping("/confirm-booking")
+    public ResponseEntity<?> confirmBooking(@RequestParam UUID bookingId, @RequestParam UUID confirmedBy) {
+        return bookingService.confirmBooking(bookingId, confirmedBy);
+    }
+
     @GetMapping("/get-bookings")
     public List<Booking> getAllBookings() {
         return bookingService.getAllBookings();
@@ -44,4 +49,8 @@ public class BookingController {
         return bookingService.getBookingById(id);
     }
 
+    @GetMapping("/get-bookings-by-user/{userId}")
+    public List<Booking> getBookingsByUserId(@PathVariable UUID userId) {
+        return bookingService.getBookingsByUserId(userId);
+    }
 }
