@@ -58,4 +58,5 @@ jobs:
               -e GOOGLE_CLIENT_SECRET="${{ secrets.GOOGLE_CLIENT_SECRET }}" \
               -e NEXTAUTH_URL="${{ secrets.NEXTAUTH_URL }}" \
               -e KEYSTORE_PASSWORD="${{ secrets.KEYSTORE_PASSWORD }}" \
+              -e KEYSTORE_PATH=${{ secrets.KEYSTORE_PATH }} \
               ${{ secrets.DOCKERHUB_USERNAME }}/pe-stadiumbookingbe
