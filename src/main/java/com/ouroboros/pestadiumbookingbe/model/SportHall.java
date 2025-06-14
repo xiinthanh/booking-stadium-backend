@@ -15,6 +15,9 @@ public class SportHall {
     private UUID id;
 
     @Column(nullable = false)
+    private UUID sportId;
+
+    @Column(nullable = false)
     private String name;
 
     private String description;
@@ -108,5 +111,13 @@ public class SportHall {
 
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public UUID getSportId() {
+        return sportId;
+    }
+
+    public void setSportId(UUID sportId) {
+        this.sportId = sportId;
     }
 }
