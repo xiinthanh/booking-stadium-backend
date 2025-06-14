@@ -2,6 +2,8 @@ package com.ouroboros.pestadiumbookingbe.service;
 
 import com.ouroboros.pestadiumbookingbe.model.Profile;
 import com.ouroboros.pestadiumbookingbe.repository.ProfileRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -12,18 +14,33 @@ import java.util.UUID;
 @Service
 public class ProfileService {
 
+    private static final Logger logger = LoggerFactory.getLogger(ProfileService.class);
+
     @Autowired
     private ProfileRepository profileRepository;
 
     public List<Profile> getAllProfiles() {
+        logger.info("Fetching all profiles");
         return profileRepository.findAll();
     }
 
     public Optional<Profile> getProfileById(UUID id) {
-        return profileRepository.findById(id);
+        logger.info("Fetching profile with ID: {}", id);
+        try {
+            return profileRepository.findById(id);
+        } catch (Exception e) {
+            logger.error("Error fetching profile with ID: {}", id, e);
+            return Optional.empty();
+        }
     }
 
     public Profile updateProfile(Profile profile) {
-        return profileRepository.save(profile);
+        logger.info("Updating profile with ID: {}", profile.getId());
+        try {
+            return profileRepository.save(profile);
+        } catch (Exception e) {
+            logger.error("Error updating profile with ID: {}", profile.getId(), e);
+            throw new RuntimeException("Error updating profile", e);
+        }
     }
 }
