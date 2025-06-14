@@ -1,6 +1,5 @@
 package com.ouroboros.pestadiumbookingbe.controller;
 
-
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -12,13 +11,16 @@ import org.springframework.web.client.RestTemplate;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.ouroboros.pestadiumbookingbe.dto.GoogleSignInRequest;
+
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
     @PostMapping("/sign-in")
-    public ResponseEntity<?> googleSignIn(@RequestBody Map<String, String> requestBody) {
-        String googleToken = requestBody.get("googleToken");
+    public ResponseEntity<?> googleSignIn(@RequestBody GoogleSignInRequest requestBody) {
+        // Extract Google OAuth token
+        String googleToken = requestBody.getGoogleToken();
 
         // Validate the token with Supabase
         String supabaseUrl = System.getenv("NEXT_PUBLIC_SUPABASE_URL") + "/auth/v1/token?grant_type=google";
