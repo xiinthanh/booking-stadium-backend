@@ -61,4 +61,7 @@ jobs:
               -e NEXTAUTH_URL="${{ secrets.NEXTAUTH_URL }}" \
               -e KEYSTORE_PASSWORD="${{ secrets.KEYSTORE_PASSWORD }}" \
               -e KEYSTORE_PATH=${{ secrets.KEYSTORE_PATH }} \
+              -e MAILGUN_API_KEY="${{ secrets.MAILGUN_API_KEY }}" \
+              -e MAILGUN_DOMAIN="${{ secrets.MAILGUN_DOMAIN }}" \
+              -e MAILGUN_FROM_EMAIL="${{ secrets.MAILGUN_FROM_EMAIL }}" \
               ${{ secrets.DOCKERHUB_USERNAME }}/pe-stadiumbookingbe
