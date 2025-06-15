@@ -67,6 +67,7 @@ public class BookingService {
     }
 
     public List<Booking> getAllBookings() {
+        logger.info("Fetching all bookings");
         try {
             return bookingRepository.findAll();
         } catch (Exception e) {
@@ -76,6 +77,7 @@ public class BookingService {
     }
 
     public ResponseEntity<?> cancelBooking(UUID bookingId, UUID canceledBy) {
+        logger.info("Canceling booking with ID: {} by user: {}", bookingId, canceledBy);
         Booking booking = bookingRepository.findById(bookingId).orElse(null);
 
         if (booking == null) {
@@ -86,16 +88,27 @@ public class BookingService {
             return ResponseEntity.badRequest().body("Only pending/confirmed bookings can be canceled.");
         }
 
-        booking.setCanceledAt(OffsetDateTime.now());
-        booking.setCanceledBy(canceledBy);
-        booking.setStatus(Status.rejected);
+        try {
+            booking.setCanceledAt(OffsetDateTime.now());
+            booking.setCanceledBy(canceledBy);
+            booking.setStatus(Status.rejected);
 
-        Booking updatedBooking = bookingRepository.save(booking);
-        return ResponseEntity.ok(updatedBooking);
+            Booking updatedBooking = bookingRepository.save(booking);
+            return ResponseEntity.ok(updatedBooking);
+        } catch (Exception e) {
+            logger.error("Error canceling booking with ID: {}", bookingId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred while canceling the booking.");
+        }
     }
 
     public Booking getBookingById(UUID id) {
-        return bookingRepository.findById(id).orElse(null);
+        logger.info("Fetching booking with bookingID: {}", id);
+        try {
+            return bookingRepository.findById(id).orElse(null);
+        } catch (Exception e) {
+            logger.error("Error fetching booking with ID: {}", id, e);
+            return null;
+        }
     }
 
     public List<Booking> getBookingsByUserId(UUID userId) {

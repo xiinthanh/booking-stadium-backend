@@ -19,7 +19,12 @@ public class SportService {
 
     public List<Sport> getAllSports() {
         logger.info("Fetching all sports from the repository");
-        return sportRepository.findAll();
+        try {
+            return sportRepository.findAll();
+        } catch (Exception e) {
+            logger.error("Error fetching sports", e);
+            return List.of();
+        }
     }
 }
 

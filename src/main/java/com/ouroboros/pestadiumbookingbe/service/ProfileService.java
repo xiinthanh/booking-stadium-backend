@@ -21,7 +21,12 @@ public class ProfileService {
 
     public List<Profile> getAllProfiles() {
         logger.info("Fetching all profiles");
-        return profileRepository.findAll();
+        try {
+            return profileRepository.findAll();
+        } catch (Exception e) {
+            logger.error("Error fetching profiles", e);
+            return List.of();
+        }
     }
 
     public Optional<Profile> getProfileById(UUID id) {
@@ -40,7 +45,7 @@ public class ProfileService {
             return profileRepository.save(profile);
         } catch (Exception e) {
             logger.error("Error updating profile with ID: {}", profile.getId(), e);
-            throw new RuntimeException("Error updating profile", e);
+            return null;
         }
     }
 }
