@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 import java.util.concurrent.CompletableFuture;
 
 @Service
-public class MyMailgunService {
+public class NotificationService {
 
     @Value("${mailgun.api.key}")
     private String apiKey;
@@ -23,7 +23,7 @@ public class MyMailgunService {
     @Value("${mailgun.from.email}")
     private String emailFrom;
 
-    private static final Logger logger = LoggerFactory.getLogger(MyMailgunService.class);
+    private static final Logger logger = LoggerFactory.getLogger(NotificationService.class);
 
     public void sendEmail(String to, String subject, String text) {
         try {
