@@ -150,6 +150,40 @@ public class BookingService {
         }
     }
 
+    public ResponseEntity<?> modifyBooking(UUID bookingId, UUID modifiedByUserId, UUID userId, UUID sportHallId, UUID sportId, LocalDate date, UUID timeSlotId, String purpose) {
+        logger.info("Modifying booking with ID: {} for userId: {}, sportHallId: {}, sportId: {}, date: {}, timeSlotId: {}, purpose: {}", bookingId, userId, sportHallId, sportId, date, timeSlotId, purpose);
+        try {
+            Booking booking = bookingRepository.findById(bookingId).orElse(null);
+            if (booking == null) {
+                logger.error("Booking not found with ID: {}", bookingId);
+                return ResponseEntity.badRequest().body("Booking not found.");
+            }
+            if (date.isBefore(LocalDate.now())) {
+                logger.error("Invalid booking date: {}. Cannot modify booking in the past.", date);
+                return ResponseEntity.badRequest().body("Booking date cannot be in the past.");
+            }
+            // check if a booking with the same combination and status exists
+            if (bookingRepository.existsBySportHallIdAndBookingDateAndTimeSlotIdAndStatus(
+                    sportHallId, date, timeSlotId, Status.confirmed)) {
+                logger.warn("Booking already exists for sportHallId: {}, date: {}, timeSlotId: {} with confirmed status", sportHallId, date, timeSlotId);
+                return ResponseEntity.badRequest().body("A booking already exists for the given combination with a confirmed or completed status.");
+            }
+            // Update booking details
+            booking.setStatus(Status.pending);  // Reset status to pending, waiting for confirmation from admin
+            booking.setCanceledAt(OffsetDateTime.now());
+            booking.setCanceledBy(modifiedByUserId);
+            bookingRepository.save(booking);
+
+            // Notify the user about the booking modification
+            notificationService.notifyOnBookingChange(booking, BookingNotificationType.MODIFICATION);
+
+            return ResponseEntity.ok("Booking modified successfully.");
+        } catch (Exception e) {
+            logger.error("Error modifying booking with ID: {}", bookingId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred while modifying the booking.");
+        }
+    }
+
     public List<Booking> getAllBookings() {
         logger.info("Fetching all bookings");
         try {
