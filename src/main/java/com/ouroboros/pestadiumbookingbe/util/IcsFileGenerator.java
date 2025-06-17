@@ -23,6 +23,7 @@ public class IcsFileGenerator {
 
     private static final Logger logger = LoggerFactory.getLogger(IcsFileGenerator.class);
     private final TimeSlotService timeSlotService;
+    private final String ZoneIdName = "Asia/Ho_Chi_Minh";
 
     @Autowired
     public IcsFileGenerator(TimeSlotService timeSlotService) {
@@ -46,8 +47,8 @@ public class IcsFileGenerator {
         LocalTime startTime = bookingSummary.getStartTime();
         LocalTime endTime = bookingSummary.getEndTime();
 
-        ZonedDateTime start = ZonedDateTime.of(bookingSummary.getBookingDate(), startTime, ZoneId.systemDefault());
-        ZonedDateTime end = ZonedDateTime.of(bookingSummary.getBookingDate(), endTime, ZoneId.systemDefault());
+        ZonedDateTime start = ZonedDateTime.of(bookingSummary.getBookingDate(), startTime, ZoneId.of(ZoneIdName));
+        ZonedDateTime end = ZonedDateTime.of(bookingSummary.getBookingDate(), endTime, ZoneId.of(ZoneIdName));
 
         DateTime startDateTime = new DateTime(start.toInstant().toEpochMilli());
         DateTime endDateTime = new DateTime(end.toInstant().toEpochMilli());
