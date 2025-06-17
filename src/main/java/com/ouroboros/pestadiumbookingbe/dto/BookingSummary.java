@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 
 public class BookingSummary {
+    private String senderEmailAddress;
     private LocalDate bookingDate;
     private LocalTime startTime;
     private LocalTime endTime;
@@ -12,7 +13,7 @@ public class BookingSummary {
 
     public BookingSummary() {}
 
-    public BookingSummary(LocalDate bookingDate, LocalTime startTime, LocalTime endTime, String sportHallName, String purpose) {
+    public BookingSummary(String senderEmailAddress, LocalDate bookingDate, LocalTime startTime, LocalTime endTime, String sportHallName, String purpose) {
         this.bookingDate = bookingDate;
         this.startTime = startTime;
         this.endTime = endTime;
@@ -58,6 +59,14 @@ public class BookingSummary {
 
     public void setPurpose(String purpose) {
         this.purpose = purpose;
+    }
+
+    public String getSenderEmailAddress() {
+        return senderEmailAddress;
+    }
+
+    public void setSenderEmailAddress(String senderEmailAddress) {
+        this.senderEmailAddress = senderEmailAddress;
     }
 }
 

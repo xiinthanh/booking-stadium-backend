@@ -4,7 +4,9 @@ import com.mailgun.api.v3.MailgunMessagesApi;
 import com.mailgun.client.MailgunClient;
 import com.mailgun.model.message.Message;
 import com.mailgun.model.message.MessageResponse;
+import com.ouroboros.pestadiumbookingbe.dto.BookingSummary;
 import com.ouroboros.pestadiumbookingbe.model.Booking;
+import com.ouroboros.pestadiumbookingbe.util.BookingMapper;
 import com.ouroboros.pestadiumbookingbe.util.IcsFileGenerator;
 import feign.form.FormData;
 import org.slf4j.Logger;
@@ -29,6 +31,9 @@ public class NotificationService {
 
     @Value("${mailgun.from.email}")
     private String emailFrom;
+
+    @Autowired
+    private BookingMapper bookingMapper;
 
     private static final Logger logger = LoggerFactory.getLogger(NotificationService.class);
 
@@ -82,4 +87,42 @@ public class NotificationService {
         }
     }
 
+    public enum BookingNotificationType {
+        CONFIRMATION, CANCELLATION, REJECTION
+    }
+
+    public void notifyOnBookingChange(Booking booking, BookingNotificationType type) {
+        BookingSummary bookingSummary = bookingMapper.toBookingSummary(booking);
+        String subject;
+        String text;
+        switch (type) {
+            case CONFIRMATION:
+                subject = "Booking Confirmation";
+                text = String.format("Your booking for %s on %s from %s to %s has been confirmed.",
+                        bookingSummary.getSportHallName(),
+                        bookingSummary.getBookingDate(),
+                        bookingSummary.getStartTime(),
+                        bookingSummary.getEndTime());
+                break;
+            case CANCELLATION:
+                subject = "Booking Cancellation";
+                text = String.format("Your booking for %s on %s from %s to %s has been cancelled.",
+                        bookingSummary.getSportHallName(),
+                        bookingSummary.getBookingDate(),
+                        bookingSummary.getStartTime(),
+                        bookingSummary.getEndTime());
+                break;
+            case REJECTION:
+                subject = "Booking Rejection";
+                text = String.format("Your booking for %s on %s from %s to %s has been rejected.",
+                        bookingSummary.getSportHallName(),
+                        bookingSummary.getBookingDate(),
+                        bookingSummary.getStartTime(),
+                        bookingSummary.getEndTime());
+                break;
+            default:
+                throw new IllegalArgumentException("Unknown booking change type");
+        }
+        sendEmail(booking.getUserId().toString(), subject, text);
+    }
 }

@@ -48,4 +48,20 @@ public class ProfileService {
             return null;
         }
     }
+
+    public String getEmailByUserId(UUID userId) {
+        logger.info("Fetching email for user ID: {}", userId);
+        try {
+            Optional<Profile> profile = profileRepository.findById(userId);
+            if (profile.isPresent()) {
+                return profile.get().getEmail();
+            } else {
+                logger.warn("No profile found for user ID: {}", userId);
+                return null;
+            }
+        } catch (Exception e) {
+            logger.error("Error fetching email for user ID: {}", userId, e);
+            return null;
+        }
+    }
 }
