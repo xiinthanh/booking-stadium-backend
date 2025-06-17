@@ -1,7 +1,7 @@
 package com.ouroboros.pestadiumbookingbe.controller;
 
 
-import com.ouroboros.pestadiumbookingbe.service.MyMailgunService;
+import com.ouroboros.pestadiumbookingbe.service.NotificationService;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,9 +14,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/emails")
 public class EmailController {
 
-    private final MyMailgunService mailgunService;
+    private final NotificationService mailgunService;
 
-    public EmailController(MyMailgunService mailgunService) {
+    public EmailController(NotificationService mailgunService) {
         this.mailgunService = mailgunService;
     }
 
