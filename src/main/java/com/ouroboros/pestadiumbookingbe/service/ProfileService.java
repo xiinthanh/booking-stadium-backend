@@ -29,13 +29,13 @@ public class ProfileService {
         }
     }
 
-    public Optional<Profile> getProfileById(UUID id) {
+    public Profile getProfileById(UUID id) {
         logger.info("Fetching profile with ID: {}", id);
         try {
-            return profileRepository.findById(id);
+            return profileRepository.findById(id).orElse(null);
         } catch (Exception e) {
             logger.error("Error fetching profile with ID: {}", id, e);
-            return Optional.empty();
+            return null;
         }
     }
 
