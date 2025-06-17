@@ -40,6 +40,20 @@ public class BookingController {
         return bookingService.confirmBooking(bookingId, confirmedBy);
     }
 
+    @PostMapping("/modify-booking")
+    public ResponseEntity<?> modifyBooking(@RequestParam UUID bookingId, @RequestParam UUID modifiedByUserId, @RequestBody BookingRequest bookingRequest) {
+        return bookingService.modifyBooking(
+            bookingId,
+            modifiedByUserId,
+            bookingRequest.getUserId(),
+            bookingRequest.getSportHallId(),
+            bookingRequest.getSportId(),
+            bookingRequest.getDate(),
+            bookingRequest.getTimeSlotId(),
+            bookingRequest.getPurpose()
+        );
+    }
+
     @GetMapping("/get-bookings")
     public List<Booking> getAllBookings() {
         return bookingService.getAllBookings();
