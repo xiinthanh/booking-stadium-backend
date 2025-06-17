@@ -4,12 +4,10 @@ package com.ouroboros.pestadiumbookingbe.controller;
 import com.ouroboros.pestadiumbookingbe.dto.BookingSummary;
 import com.ouroboros.pestadiumbookingbe.model.Booking;
 import com.ouroboros.pestadiumbookingbe.model.BookingRequest;
-import com.ouroboros.pestadiumbookingbe.service.BookingService;
-import com.ouroboros.pestadiumbookingbe.service.NotificationService;
 
 import com.ouroboros.pestadiumbookingbe.util.BookingMapper;
+import com.ouroboros.pestadiumbookingbe.util.EmailSender;
 import com.ouroboros.pestadiumbookingbe.util.IcsFileGenerator;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,12 +16,12 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/emails")
 public class EmailController {
 
-    private final NotificationService mailgunService;
+    private final EmailSender emailSender;
     private final IcsFileGenerator icsFileGenerator;
     private final BookingMapper bookingMapper;
 
-    public EmailController(NotificationService mailgunService, IcsFileGenerator icsFileGenerator, BookingMapper bookingMapper) {
-        this.mailgunService = mailgunService;
+    public EmailController(EmailSender emailSender, IcsFileGenerator icsFileGenerator, BookingMapper bookingMapper) {
+        this.emailSender = emailSender;
         this.icsFileGenerator = icsFileGenerator;
         this.bookingMapper = bookingMapper;
     }
@@ -33,7 +31,7 @@ public class EmailController {
                                             @RequestParam String subject,
                                             @RequestParam String text) {
         try {
-            mailgunService.sendEmail(to, subject, text);
+            emailSender.sendEmail(to, subject, text);
             return ResponseEntity.ok("Email sent successfully");
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to send email: " + e.getMessage());
@@ -56,7 +54,7 @@ public class EmailController {
             BookingSummary bookingSummary = bookingMapper.toBookingSummary(newBooking);
             byte[] icsBytes = icsFileGenerator.generateIcsStream(bookingSummary).toByteArray();
 
-            mailgunService.sendEmailWithIcsAttachment(to, subject, text, icsBytes);
+            emailSender.sendEmailWithIcsAttachment(to, subject, text, icsBytes);
             return ResponseEntity.ok("Email with ICS sent successfully");
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to send email with ICS: " + e.getMessage());

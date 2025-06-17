@@ -2,6 +2,7 @@ package com.ouroboros.pestadiumbookingbe.service;
 
 import com.ouroboros.pestadiumbookingbe.model.Booking;
 import com.ouroboros.pestadiumbookingbe.model.Status;
+import com.ouroboros.pestadiumbookingbe.notifier.BookingNotificationType;
 import com.ouroboros.pestadiumbookingbe.repository.BookingRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,7 +12,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -23,6 +23,8 @@ public class BookingService {
 
     @Autowired
     private BookingRepository bookingRepository;
+    @Autowired
+    private NotificationService notificationService;
 
     public ResponseEntity<?> createBooking(UUID userId, UUID sportHallId, UUID sportId, LocalDate date, UUID timeSlotId, String purpose) {
         logger.info("Creating booking for userId: {}, sportHallId: {}, sportId: {}, date: {}, timeSlotId: {}, purpose: {}", userId, sportHallId, sportId, date, timeSlotId, purpose);
@@ -60,20 +62,14 @@ public class BookingService {
 
             Booking savedBooking = bookingRepository.save(booking);
             logger.info("Booking created successfully for userId: {}, sportHallId: {}, sportId: {}, date: {}, timeSlotId: {}", userId, sportHallId, sportId, date, timeSlotId);
+
+            // Notify the user about the booking creation
+            notificationService.notifyOnBookingChange(booking, BookingNotificationType.CREATION);
+
             return ResponseEntity.ok(savedBooking);
         } catch (Exception e) {
             logger.error("Error occurred while creating booking: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred while creating the booking.");
-        }
-    }
-
-    public List<Booking> getAllBookings() {
-        logger.info("Fetching all bookings");
-        try {
-            return bookingRepository.findAll();
-        } catch (Exception e) {
-            logger.error("Error fetching all bookings: {}", e.getMessage(), e);
-            return List.of();
         }
     }
 
@@ -95,32 +91,14 @@ public class BookingService {
             booking.setStatus(Status.rejected);
 
             Booking updatedBooking = bookingRepository.save(booking);
+
+            // Notify the user about the booking cancellation
+            notificationService.notifyOnBookingChange(booking, BookingNotificationType.CANCELLATION);
+
             return ResponseEntity.ok(updatedBooking);
         } catch (Exception e) {
             logger.error("Error canceling booking with ID: {}", bookingId, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred while canceling the booking.");
-        }
-    }
-
-    public Booking getBookingById(UUID id) {
-        logger.info("Fetching booking with bookingID: {}", id);
-        try {
-            return bookingRepository.findById(id).orElse(null);
-        } catch (Exception e) {
-            logger.error("Error fetching booking with ID: {}", id, e);
-            return null;
-        }
-    }
-
-    public List<Booking> getBookingsByUserId(UUID userId) {
-        logger.info("Fetching bookings for userId: {}", userId);
-        try {
-            return bookingRepository.findAll().stream()
-                    .filter(booking -> booking.getUserId().equals(userId))
-                    .toList();
-        } catch (Exception e) {
-            logger.error("Error fetching bookings for userId: {}", userId, e);
-            return List.of();
         }
     }
 
@@ -146,10 +124,10 @@ public class BookingService {
             try {
                 bookingRepository.findAll().stream()
                         .filter(b -> b.getSportHallId().equals(booking.getSportHallId()) &&
-                                     b.getBookingDate().equals(booking.getBookingDate()) &&
-                                     b.getTimeSlotId().equals(booking.getTimeSlotId()) &&
-                                     !b.getId().equals(bookingId) &&
-                                     (b.getStatus() == Status.pending || b.getStatus() == Status.confirmed))
+                                b.getBookingDate().equals(booking.getBookingDate()) &&
+                                b.getTimeSlotId().equals(booking.getTimeSlotId()) &&
+                                !b.getId().equals(bookingId) &&
+                                (b.getStatus() == Status.pending || b.getStatus() == Status.confirmed))
                         .forEach(b -> {
                             b.setStatus(Status.rejected);
                             b.setCanceledAt(OffsetDateTime.now());
@@ -161,10 +139,46 @@ public class BookingService {
             }
 
             logger.info("Booking confirmed successfully with ID: {}", bookingId);
+
+            // Notify the user about the booking confirmation
+            notificationService.notifyOnBookingChange(booking, BookingNotificationType.CONFIRMATION);
+
             return ResponseEntity.ok(updatedBooking);
         } catch (Exception e) {
             logger.error("Error confirming booking with ID: {}", bookingId, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred while confirming the booking.");
+        }
+    }
+
+    public List<Booking> getAllBookings() {
+        logger.info("Fetching all bookings");
+        try {
+            return bookingRepository.findAll();
+        } catch (Exception e) {
+            logger.error("Error fetching all bookings: {}", e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    public Booking getBookingById(UUID id) {
+        logger.info("Fetching booking with bookingID: {}", id);
+        try {
+            return bookingRepository.findById(id).orElse(null);
+        } catch (Exception e) {
+            logger.error("Error fetching booking with ID: {}", id, e);
+            return null;
+        }
+    }
+
+    public List<Booking> getBookingsByUserId(UUID userId) {
+        logger.info("Fetching bookings for userId: {}", userId);
+        try {
+            return bookingRepository.findAll().stream()
+                    .filter(booking -> booking.getUserId().equals(userId))
+                    .toList();
+        } catch (Exception e) {
+            logger.error("Error fetching bookings for userId: {}", userId, e);
+            return List.of();
         }
     }
 }

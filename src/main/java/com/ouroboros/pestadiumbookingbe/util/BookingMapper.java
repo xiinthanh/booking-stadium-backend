@@ -27,13 +27,15 @@ public class BookingMapper {
         TimeSlot timeSlot = booking.getTimeSlotId() != null ? timeSlotService.getTimeSlotById(booking.getTimeSlotId()) : null;
         SportHall sportHall = booking.getSportHallId() != null ? sportHallService.getSportHallById(booking.getSportHallId()) : null;
         String emailAddress = booking.getUserId() != null ? profileService.getEmailByUserId(booking.getUserId()) : null;
+        String canceledByEmailAddress = booking.getCanceledBy() != null ? profileService.getEmailByUserId(booking.getCanceledBy()) : null;
         return new BookingSummary(
                 emailAddress != null ? emailAddress : "",
                 booking.getBookingDate(),
                 timeSlot != null ? timeSlot.getStartTime() : null,
                 timeSlot != null ? timeSlot.getEndTime() : null,
                 sportHall != null ? sportHall.getName() : null,
-                booking.getPurpose()
+                booking.getPurpose(),
+                canceledByEmailAddress != null ? canceledByEmailAddress : ""
         );
     }
 }

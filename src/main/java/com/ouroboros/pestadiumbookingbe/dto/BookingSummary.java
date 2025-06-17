@@ -10,15 +10,17 @@ public class BookingSummary {
     private LocalTime endTime;
     private String sportHallName;
     private String purpose;
+    private String canceledByEmailAddress;
 
     public BookingSummary() {}
 
-    public BookingSummary(String senderEmailAddress, LocalDate bookingDate, LocalTime startTime, LocalTime endTime, String sportHallName, String purpose) {
+    public BookingSummary(String senderEmailAddress, LocalDate bookingDate, LocalTime startTime, LocalTime endTime, String sportHallName, String purpose, String cancledByEmailAddress) {
         this.bookingDate = bookingDate;
         this.startTime = startTime;
         this.endTime = endTime;
         this.sportHallName = sportHallName;
         this.purpose = purpose;
+        this.senderEmailAddress = senderEmailAddress;
     }
 
     public LocalDate getBookingDate() {
@@ -67,6 +69,14 @@ public class BookingSummary {
 
     public void setSenderEmailAddress(String senderEmailAddress) {
         this.senderEmailAddress = senderEmailAddress;
+    }
+
+    public String getCanceledByEmailAddress() {
+        return canceledByEmailAddress;
+    }
+
+    public void setCanceledByEmailAddress(String canceledByEmailAddress) {
+        this.canceledByEmailAddress = canceledByEmailAddress;
     }
 }
 
