@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class TimeSlotService {
@@ -24,6 +25,17 @@ public class TimeSlotService {
         } catch (Exception e) {
             logger.error("Error fetching time slots", e);
             return List.of();
+        }
+    }
+
+    public TimeSlot getTimeSlotById(UUID id) {
+        logger.info("Fetching time slot with ID: {}", id);
+        try {
+            return timeSlotRepository.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Time slot not found with ID: " + id));
+        } catch (Exception e) {
+            logger.error("Error fetching time slot with ID: {}", id, e);
+            return null;
         }
     }
 }

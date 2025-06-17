@@ -29,13 +29,13 @@ public class ProfileService {
         }
     }
 
-    public Optional<Profile> getProfileById(UUID id) {
+    public Profile getProfileById(UUID id) {
         logger.info("Fetching profile with ID: {}", id);
         try {
-            return profileRepository.findById(id);
+            return profileRepository.findById(id).orElse(null);
         } catch (Exception e) {
             logger.error("Error fetching profile with ID: {}", id, e);
-            return Optional.empty();
+            return null;
         }
     }
 
@@ -45,6 +45,22 @@ public class ProfileService {
             return profileRepository.save(profile);
         } catch (Exception e) {
             logger.error("Error updating profile with ID: {}", profile.getId(), e);
+            return null;
+        }
+    }
+
+    public String getEmailByUserId(UUID userId) {
+        logger.info("Fetching email for user ID: {}", userId);
+        try {
+            Optional<Profile> profile = profileRepository.findById(userId);
+            if (profile.isPresent()) {
+                return profile.get().getEmail();
+            } else {
+                logger.warn("No profile found for user ID: {}", userId);
+                return null;
+            }
+        } catch (Exception e) {
+            logger.error("Error fetching email for user ID: {}", userId, e);
             return null;
         }
     }
