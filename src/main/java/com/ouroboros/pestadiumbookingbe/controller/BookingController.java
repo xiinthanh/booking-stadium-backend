@@ -38,17 +38,8 @@ public class BookingController {
     }
 
     @PostMapping("/cancel-booking")
-    public ResponseEntity<?> cancelBooking(@RequestBody Map<String, String> requestBody) {
-        try {
-            UUID bookingId = UUID.fromString(requestBody.get("bookingId"));
-            UUID canceledBy = UUID.fromString(requestBody.get("canceledBy"));
-            return bookingService.cancelBooking(bookingId, canceledBy);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body("Invalid UUID format in request.");
-        } catch (Exception e) {
-            logger.error("Error occurred while canceling booking: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred. Please try again later.");
-        }
+    public ResponseEntity<?> cancelBooking(@RequestParam UUID bookingId, @RequestParam UUID canceledBy) {
+        return bookingService.cancelBooking(bookingId, canceledBy);
     }
 
     @PostMapping("/confirm-booking")
