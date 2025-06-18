@@ -2,11 +2,13 @@ package com.ouroboros.pestadiumbookingbe.service;
 
 import com.ouroboros.pestadiumbookingbe.model.Status;
 import com.ouroboros.pestadiumbookingbe.repository.BookingRepository;
+import com.ouroboros.pestadiumbookingbe.repository.ProfileRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.ResponseEntity;
 
 import java.time.LocalDate;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -19,16 +21,16 @@ class BookingServiceTest {
         // Mock dependencies
         BookingRepository mockRepository = mock(BookingRepository.class);
         NotificationService mockNotificationService = mock(NotificationService.class);
+        ProfileRepository mockProfileRepository = mock(ProfileRepository.class);
 
         // Simulate database downtime
-        when(mockRepository.existsBySportHallIdAndBookingDateAndTimeSlotIdAndStatus(
-                any(UUID.class), any(LocalDate.class), any(UUID.class), any()))
-                .thenThrow(new DataAccessException("Database is down") {});
+        when(mockProfileRepository.findById(any(UUID.class))).thenThrow(new DataAccessException("Database is down") {});
 
         // Create BookingService instance with mocked dependencies
         BookingService bookingService = new BookingService();
         bookingService.bookingRepository = mockRepository;
         bookingService.notificationService = mockNotificationService;
+        bookingService.profileRepository = mockProfileRepository;
 
         // Test data
         UUID userId = UUID.randomUUID();
@@ -46,7 +48,6 @@ class BookingServiceTest {
         assertEquals("The service is temporarily unavailable due to database issues. Please try again later.", response.getBody());
 
         // Verify repository interaction
-        verify(mockRepository, times(1)).existsBySportHallIdAndBookingDateAndTimeSlotIdAndStatus(
-                sportHallId, date, timeSlotId, Status.confirmed);
+        verify(mockProfileRepository, times(1)).findById(userId);
     }
 }
