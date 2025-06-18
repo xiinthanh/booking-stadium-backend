@@ -21,6 +21,7 @@ public class BookingSummary {
         this.sportHallName = sportHallName;
         this.purpose = purpose;
         this.senderEmailAddress = senderEmailAddress;
+        this.canceledByEmailAddress = cancledByEmailAddress;
     }
 
     public LocalDate getBookingDate() {

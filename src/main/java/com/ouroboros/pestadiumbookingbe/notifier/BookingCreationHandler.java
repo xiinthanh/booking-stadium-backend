@@ -4,6 +4,7 @@ import com.ouroboros.pestadiumbookingbe.dto.BookingSummary;
 import com.ouroboros.pestadiumbookingbe.model.Booking;
 import com.ouroboros.pestadiumbookingbe.util.BookingMapper;
 import com.ouroboros.pestadiumbookingbe.util.EmailSender;
+import com.ouroboros.pestadiumbookingbe.util.IcsFileGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +16,8 @@ public class BookingCreationHandler implements BookingNotificationHandler {
     private BookingMapper bookingMapper;
     @Autowired
     private EmailSender emailSender;
+    @Autowired
+    private IcsFileGenerator icsFileGenerator;
 
     private static final Logger logger = LoggerFactory.getLogger(BookingCreationHandler.class);
 
@@ -31,7 +34,8 @@ public class BookingCreationHandler implements BookingNotificationHandler {
                     bookingSummary.getBookingDate(),
                     bookingSummary.getStartTime(),
                     bookingSummary.getEndTime());
-            emailSender.sendEmail(bookingSummary.getSenderEmailAddress(), subject, text);
+            byte[] icsBytes = icsFileGenerator.generateIcsStream(bookingSummary).toByteArray();
+            emailSender.sendEmailWithIcsAttachment(bookingSummary.getSenderEmailAddress(), subject, text, icsBytes);
         } catch (Exception e) {
             logger.error("Failed to send booking rejection email for booking: {}", booking.getId(), e);
         }
