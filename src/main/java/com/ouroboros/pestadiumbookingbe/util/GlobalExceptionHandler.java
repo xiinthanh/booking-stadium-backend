@@ -25,6 +25,13 @@ public class GlobalExceptionHandler {
                 .body("The service is temporarily unavailable due to database issues. Please try again later.");
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<String> handleIllegalArgumentException(IllegalArgumentException ex) {
+        logger.error("Invalid argument provided: {}", ex.getMessage(), ex);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body("Invalid input format. Please check your request and try again.");
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<String> handleGenericException(Exception ex) {
         logger.error("Unhandled exception: {}", ex.getMessage(), ex);
