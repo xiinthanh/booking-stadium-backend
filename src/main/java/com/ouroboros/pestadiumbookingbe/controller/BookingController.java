@@ -65,7 +65,13 @@ public class BookingController {
     }
 
     @GetMapping("/get-bookings-by-user/{userId}")
-    public ResponseEntity<?> getBookingsByUserId(@PathVariable UUID userId) {
-        return bookingService.getBookingsByUserId(userId);
+    public ResponseEntity<?> getBookingsByUserId(@PathVariable String userId) {
+        // Validate userId format if necessary
+        try {
+            UUID userIdUUID = UUID.fromString(userId);
+            return bookingService.getBookingsByUserId(userIdUUID);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body("Invalid user ID format");
+        }
     }
 }
