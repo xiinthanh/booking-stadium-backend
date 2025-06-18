@@ -26,7 +26,12 @@ public class StadiumInfoService {
     public ResponseEntity<?> getAllSportHalls() {
         logger.info("getAllSportHalls");
         try {
-            return ResponseEntity.ok(sportHallRepository.findAll());
+            List<?> sportHalls = sportHallRepository.findAll();
+            if (sportHalls.isEmpty()) {
+                logger.warn("No sport halls found");
+                return ResponseEntity.status(404).body(List.of());
+            }
+            return ResponseEntity.ok(sportHalls);
         } catch (org.springframework.dao.DataAccessException ex) {
             logger.error("Database error fetching sport halls", ex);
             return ResponseEntity.status(503).body(List.of());
@@ -39,7 +44,12 @@ public class StadiumInfoService {
     public ResponseEntity<?> getAllSports() {
         logger.info("Fetching all sports from the repository");
         try {
-            return ResponseEntity.ok(sportRepository.findAll());
+            List<?> sports = sportRepository.findAll();
+            if (sports.isEmpty()) {
+                logger.warn("No sports found");
+                return ResponseEntity.status(404).body(List.of());
+            }
+            return ResponseEntity.ok(sports);
         } catch (org.springframework.dao.DataAccessException ex) {
             logger.error("Database error fetching sports", ex);
             return ResponseEntity.status(503).body(List.of());
@@ -52,7 +62,12 @@ public class StadiumInfoService {
     public ResponseEntity<?> getAllTimeSlots() {
         logger.info("Fetching all time slots");
         try {
-            return ResponseEntity.ok(timeSlotRepository.findAll());
+            List<?> timeSlots = timeSlotRepository.findAll();
+            if (timeSlots.isEmpty()) {
+                logger.warn("No time slots found");
+                return ResponseEntity.status(404).body(List.of());
+            }
+            return ResponseEntity.ok(timeSlots);
         } catch (org.springframework.dao.DataAccessException ex) {
             logger.error("Database error fetching time slots", ex);
             return ResponseEntity.status(503).body(List.of());

@@ -23,7 +23,12 @@ public class ProfileService {
     public ResponseEntity<?> getAllProfiles() {
         logger.info("Fetching all profiles");
         try {
-            return ResponseEntity.ok(profileRepository.findAll());
+            List<Profile> profiles = profileRepository.findAll();
+            if (profiles.isEmpty()) {
+                logger.warn("No profiles found");
+                return ResponseEntity.status(404).body(List.of());
+            }
+            return ResponseEntity.ok(profiles);
         } catch (org.springframework.dao.DataAccessException ex) {
             logger.error("Database error fetching profiles", ex);
             return ResponseEntity.status(503).body(List.of());
@@ -55,7 +60,14 @@ public class ProfileService {
     public ResponseEntity<?> updateProfile(Profile profile) {
         logger.info("Updating profile with ID: {}", profile.getId());
         try {
-            return ResponseEntity.ok(profileRepository.save(profile));
+            Optional<Profile> existingProfile = profileRepository.findById(profile.getId());
+
+            if (existingProfile.isPresent()) {
+                return ResponseEntity.ok(profileRepository.save(profile));
+            } else {
+                logger.warn("No profile found for ID: {}", profile.getId());
+                return ResponseEntity.status(404).body(null);
+            }
         } catch (org.springframework.dao.DataAccessException ex) {
             logger.error("Database error updating profile with ID: {}", profile.getId(), ex);
             return ResponseEntity.status(503).body(null);

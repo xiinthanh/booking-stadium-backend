@@ -4,6 +4,9 @@ import com.ouroboros.pestadiumbookingbe.model.Booking;
 import com.ouroboros.pestadiumbookingbe.model.Status;
 import com.ouroboros.pestadiumbookingbe.notifier.BookingNotificationType;
 import com.ouroboros.pestadiumbookingbe.repository.BookingRepository;
+import com.ouroboros.pestadiumbookingbe.repository.ProfileRepository;
+import com.ouroboros.pestadiumbookingbe.repository.SportHallRepository;
+import com.ouroboros.pestadiumbookingbe.repository.TimeSlotRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +29,12 @@ public class BookingService {
     public BookingRepository bookingRepository;
     @Autowired
     public NotificationService notificationService;
+    @Autowired
+    public ProfileRepository profileRepository;
+    @Autowired
+    public SportHallRepository sportHallRepository;
+    @Autowired
+    public TimeSlotRepository timeSlotRepository;
 
     public ResponseEntity<?> createBooking(UUID userId, UUID sportHallId, UUID sportId, LocalDate date, UUID timeSlotId, String purpose) {
         logger.info("Creating booking for userId: {}, sportHallId: {}, sportId: {}, date: {}, timeSlotId: {}, purpose: {}", userId, sportHallId, sportId, date, timeSlotId, purpose);
@@ -41,11 +50,31 @@ public class BookingService {
                 return ResponseEntity.badRequest().body("Booking date cannot be in the past.");
             }
 
+            // Check if the userId is valid
+            if (profileRepository.findById(userId).orElse(null) == null) {
+                logger.error("User profile not found for userId: {}", userId);
+                return ResponseEntity.badRequest().body("User profile not found.");
+            }
+
+            // Check if the sport hall exists
+            if (sportHallRepository.findById(sportHallId).orElse(null) == null) {
+                logger.error("Sport hall not found for sportHallId: {}", sportHallId);
+                return ResponseEntity.badRequest().body("Sport hall not found.");
+            }
+
+            // Check if the time slot exists
+            if (timeSlotRepository.findById(timeSlotId).orElse(null) == null) {
+                logger.error("Time slot not found for timeSlotId: {}", timeSlotId);
+                return ResponseEntity.badRequest().body("Time slot not found.");
+            }
+
             // Check if a booking with the same combination and status exists
             if (bookingRepository.existsBySportHallIdAndBookingDateAndTimeSlotIdAndStatus(
-                    sportHallId, date, timeSlotId, Status.confirmed)) {
+                    sportHallId, date, timeSlotId, Status.confirmed) ||
+                bookingRepository.existsBySportHallIdAndBookingDateAndTimeSlotIdAndStatus(
+                    sportHallId, date, timeSlotId, Status.pending)) {
                 logger.warn("Booking already exists for sportHallId: {}, date: {}, timeSlotId: {} with confirmed status", sportHallId, date, timeSlotId);
-                return ResponseEntity.badRequest().body("A booking already exists for the given combination with a confirmed or completed status.");
+                return ResponseEntity.badRequest().body("A booking already exists for the given combination.");
             }
 
             // Create and save the new booking
@@ -81,9 +110,13 @@ public class BookingService {
         logger.info("Canceling booking with ID: {} by user: {}", bookingId, canceledBy);
         try {
             Booking booking = bookingRepository.findById(bookingId).orElse(null);
-
             if (booking == null) {
+                logger.error("Booking not found with ID: {}", bookingId);
                 return ResponseEntity.status(404).body("Booking not found.");
+            }
+            if (profileRepository.findById(canceledBy).orElse(null) == null) {
+                logger.error("User profile not found for userId: {}", canceledBy);
+                return ResponseEntity.badRequest().body("User profile not found.");
             }
 
             if (booking.getStatus() != Status.pending && booking.getStatus() != Status.confirmed) {
@@ -118,6 +151,10 @@ public class BookingService {
                 logger.error("Booking not found with ID: {}", bookingId);
                 return ResponseEntity.badRequest().body("Booking not found.");
             }
+            if (profileRepository.findById(confirmedBy).orElse(null) == null) {
+                logger.error("User profile not found for userId: {}", confirmedBy);
+                return ResponseEntity.badRequest().body("User profile not found.");
+            }
             if (booking.getStatus() != Status.pending) {
                 logger.error("Booking with ID: {} is not in pending status", bookingId);
                 return ResponseEntity.badRequest().body("Only pending bookings can be confirmed.");
@@ -129,22 +166,22 @@ public class BookingService {
             Booking updatedBooking = bookingRepository.save(booking);
 
             // reject all other bookings for the same sport hall, date, and time slot
-            try {
-                bookingRepository.findAll().stream()
-                        .filter(b -> b.getSportHallId().equals(booking.getSportHallId()) &&
-                                b.getBookingDate().equals(booking.getBookingDate()) &&
-                                b.getTimeSlotId().equals(booking.getTimeSlotId()) &&
-                                !b.getId().equals(bookingId) &&
-                                (b.getStatus() == Status.pending || b.getStatus() == Status.confirmed))
-                        .forEach(b -> {
-                            b.setStatus(Status.rejected);
-                            b.setCanceledAt(OffsetDateTime.now());
-                            b.setCanceledBy(confirmedBy);
-                            bookingRepository.save(b);
-                        });
-            } catch (Exception e) {
-                logger.error("Error rejecting conflicting bookings for booking ID: {}", bookingId, e);
-            }
+//            try {
+//                bookingRepository.findAll().stream()
+//                        .filter(b -> b.getSportHallId().equals(booking.getSportHallId()) &&
+//                                b.getBookingDate().equals(booking.getBookingDate()) &&
+//                                b.getTimeSlotId().equals(booking.getTimeSlotId()) &&
+//                                !b.getId().equals(bookingId) &&
+//                                (b.getStatus() == Status.pending || b.getStatus() == Status.confirmed))
+//                        .forEach(b -> {
+//                            b.setStatus(Status.rejected);
+//                            b.setCanceledAt(OffsetDateTime.now());
+//                            b.setCanceledBy(confirmedBy);
+//                            bookingRepository.save(b);
+//                        });
+//            } catch (Exception e) {
+//                logger.error("Error rejecting conflicting bookings for booking ID: {}", bookingId, e);
+//            }
 
             logger.info("Booking confirmed successfully with ID: {}", bookingId);
 
@@ -165,6 +202,11 @@ public class BookingService {
     public ResponseEntity<?> modifyBooking(UUID bookingId, UUID modifiedByUserId, UUID userId, UUID sportHallId, UUID sportId, LocalDate date, UUID timeSlotId, String purpose) {
         logger.info("Modifying booking with ID: {} for userId: {}, sportHallId: {}, sportId: {}, date: {}, timeSlotId: {}, purpose: {}", bookingId, userId, sportHallId, sportId, date, timeSlotId, purpose);
         try {
+            if (bookingId == null || modifiedByUserId == null || userId == null || sportHallId == null || sportId == null || date == null || timeSlotId == null || purpose == null || purpose.isEmpty()) {
+                logger.error("Invalid input parameters for booking modification: bookingId={}, modifiedByUserId={}, userId={}, sportHallId={}, sportId={}, date={}, timeSlotId={}, purpose={}", bookingId, modifiedByUserId, userId, sportHallId, sportId, date, timeSlotId, purpose);
+                return ResponseEntity.badRequest().body("Invalid input parameters.");
+            }
+
             Booking booking = bookingRepository.findById(bookingId).orElse(null);
             if (booking == null) {
                 logger.error("Booking not found with ID: {}", bookingId);
@@ -174,9 +216,28 @@ public class BookingService {
                 logger.error("Invalid booking date: {}. Cannot modify booking in the past.", date);
                 return ResponseEntity.badRequest().body("Booking date cannot be in the past.");
             }
+            if (profileRepository.findById(modifiedByUserId).orElse(null) == null) {
+                logger.error("User profile not found for userId: {}", modifiedByUserId);
+                return ResponseEntity.badRequest().body("Modified user profile not found.");
+            }
+            if (profileRepository.findById(userId).orElse(null) == null) {
+                logger.error("User profile not found for userId: {}", userId);
+                return ResponseEntity.badRequest().body("Booking's user profile not found.");
+            }
+            if (sportHallRepository.findById(sportHallId).orElse(null) == null) {
+                logger.error("Sport hall not found for sportHallId: {}", sportHallId);
+                return ResponseEntity.badRequest().body("Sport hall not found.");
+            }
+            if (timeSlotRepository.findById(timeSlotId).orElse(null) == null) {
+                logger.error("Time slot not found for timeSlotId: {}", timeSlotId);
+                return ResponseEntity.badRequest().body("Time slot not found.");
+            }
+
             // check if a booking with the same combination and status exists
             if (bookingRepository.existsBySportHallIdAndBookingDateAndTimeSlotIdAndStatus(
-                    sportHallId, date, timeSlotId, Status.confirmed)) {
+                    sportHallId, date, timeSlotId, Status.confirmed) ||
+                bookingRepository.existsBySportHallIdAndBookingDateAndTimeSlotIdAndStatus(
+                    sportHallId, date, timeSlotId, Status.pending)) {
                 logger.warn("Booking already exists for sportHallId: {}, date: {}, timeSlotId: {} with confirmed status", sportHallId, date, timeSlotId);
                 return ResponseEntity.badRequest().body("A booking already exists for the given combination with a confirmed or completed status.");
             }
