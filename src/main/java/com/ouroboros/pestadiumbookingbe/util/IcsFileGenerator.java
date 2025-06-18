@@ -4,12 +4,14 @@ import com.ouroboros.pestadiumbookingbe.dto.BookingSummary;
 import net.fortuna.ical4j.data.CalendarOutputter;
 import net.fortuna.ical4j.model.*;
 import net.fortuna.ical4j.model.component.VEvent;
+import net.fortuna.ical4j.model.parameter.Cn;
 import net.fortuna.ical4j.model.property.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayOutputStream;
+import java.net.URI;
 import java.time.*;
 import java.util.UUID;
 
@@ -47,6 +49,9 @@ public class IcsFileGenerator {
             meeting.getProperties().add(new DtStart(startDateTime));
             meeting.getProperties().add(new DtEnd(endDateTime));
             meeting.getProperties().add(new Summary("Booking for " + bookingSummary.getSportHallName()));
+            Organizer organizer = new Organizer(URI.create("mailto:noreply@mg.api-stadium-booking.systems"));
+            organizer.getParameters().add(new Cn("Group Ouroboros"));
+            meeting.getProperties().add(organizer);
 
             meeting.getProperties().add(new Description("Purpose: " + bookingSummary.getPurpose()));
             meeting.getProperties().add(new Uid(UUID.randomUUID().toString()));
@@ -68,3 +73,4 @@ public class IcsFileGenerator {
         }
     }
 }
+

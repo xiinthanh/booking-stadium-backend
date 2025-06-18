@@ -296,6 +296,11 @@ public class BookingService {
     public ResponseEntity<?> getBookingsByUserId(UUID userId) {
         logger.info("Fetching bookings for userId: {}", userId);
         try {
+            if (profileRepository.findById(userId).isEmpty()) {
+                logger.error("User profile not found for userId: {}", userId);
+                return ResponseEntity.badRequest().body("User profile not found.");
+            }
+
             List<Booking> bookings = bookingRepository.findAll().stream()
                     .filter(booking -> booking.getUserId().equals(userId))
                     .toList();
