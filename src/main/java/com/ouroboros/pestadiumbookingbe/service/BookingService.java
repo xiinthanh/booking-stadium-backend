@@ -14,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import javax.transaction.Transactional;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -36,6 +37,7 @@ public class BookingService {
     @Autowired
     public TimeSlotRepository timeSlotRepository;
 
+    @Transactional
     public ResponseEntity<?> createBooking(UUID userId, UUID sportHallId, UUID sportId, LocalDate date, UUID timeSlotId, String purpose) {
         logger.info("Creating booking for userId: {}, sportHallId: {}, sportId: {}, date: {}, timeSlotId: {}, purpose: {}", userId, sportHallId, sportId, date, timeSlotId, purpose);
         try {
@@ -68,12 +70,10 @@ public class BookingService {
                 return ResponseEntity.badRequest().body("Time slot not found.");
             }
 
-            // Check if a booking with the same combination and status exists
-            if (bookingRepository.existsBySportHallIdAndBookingDateAndTimeSlotIdAndStatus(
-                    sportHallId, date, timeSlotId, Status.confirmed) ||
-                bookingRepository.existsBySportHallIdAndBookingDateAndTimeSlotIdAndStatus(
-                    sportHallId, date, timeSlotId, Status.pending)) {
-                logger.warn("Booking already exists for sportHallId: {}, date: {}, timeSlotId: {} with confirmed status", sportHallId, date, timeSlotId);
+            // Use pessimistic locking to prevent race conditions
+            Booking existingBooking = bookingRepository.findBySportHallIdAndBookingDateAndTimeSlotId(sportHallId, date, timeSlotId, LockModeType.PESSIMISTIC_WRITE).orElse(null);
+            if (existingBooking != null && (existingBooking.getStatus() == Status.confirmed || existingBooking.getStatus() == Status.pending)) {
+                logger.warn("Booking already exists for sportHallId: {}, date: {}, timeSlotId: {} with confirmed or pending status", sportHallId, date, timeSlotId);
                 return ResponseEntity.badRequest().body("A booking already exists for the given combination.");
             }
 
