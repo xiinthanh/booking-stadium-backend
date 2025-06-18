@@ -7,7 +7,9 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "bookings")
+@Table(name = "bookings", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"sport_hall_id", "booking_date", "time_slot_id"})
+})
 public class Booking {
     @Id
     @GeneratedValue
