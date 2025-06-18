@@ -9,6 +9,7 @@ import java.util.UUID;
 public class Profile {
 
     @Id
+    @Column(columnDefinition = "uuid", updatable = false, nullable = false)
     private UUID id;
 
     @Column(nullable = false, unique = true)

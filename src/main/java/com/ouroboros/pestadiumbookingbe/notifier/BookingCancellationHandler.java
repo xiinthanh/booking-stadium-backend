@@ -22,8 +22,9 @@ public class BookingCancellationHandler implements BookingNotificationHandler {
     public void notify(Booking booking) {
         logger.info("Sending booking cancellation email for booking: {}", booking.getId());
 
-        BookingSummary bookingSummary = bookingMapper.toBookingSummary(booking);
         try {
+            BookingSummary bookingSummary = bookingMapper.toBookingSummary(booking);
+
             String subject = "Booking Cancellation";
             String text = String.format("Your booking for %s on %s from %s to %s has been cancelled by %s.",
                     bookingSummary.getSportHallName(),

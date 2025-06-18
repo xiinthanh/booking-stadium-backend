@@ -4,18 +4,11 @@ import com.mailgun.api.v3.MailgunMessagesApi;
 import com.mailgun.client.MailgunClient;
 import com.mailgun.model.message.Message;
 import com.mailgun.model.message.MessageResponse;
-import com.ouroboros.pestadiumbookingbe.dto.BookingSummary;
-import com.ouroboros.pestadiumbookingbe.model.Booking;
-import com.ouroboros.pestadiumbookingbe.util.BookingMapper;
-import com.ouroboros.pestadiumbookingbe.util.IcsFileGenerator;
-import feign.form.FormData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.concurrent.CompletableFuture;
@@ -35,6 +28,7 @@ public class EmailSender {
     private static final Logger logger = LoggerFactory.getLogger(EmailSender.class);
 
     public void sendEmail(String to, String subject, String text) {
+        logger.info("Sending email to {}", to);
         try {
             MailgunMessagesApi mailgunMessagesApi = MailgunClient.config(apiKey)
                     .createApi(MailgunMessagesApi.class);

@@ -3,6 +3,7 @@ package com.ouroboros.pestadiumbookingbe.controller;
 import com.ouroboros.pestadiumbookingbe.model.SportHall;
 import com.ouroboros.pestadiumbookingbe.service.SportHallService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,12 +20,12 @@ public class SportHallController {
     private SportHallService sportHallService;
 
     @GetMapping("/get-sport-halls")
-    public List<SportHall> getAllSportHalls() {
+    public ResponseEntity<?> getAllSportHalls() {
         return sportHallService.getAllSportHalls();
     }
 
     @GetMapping("/get-sport-hall/{id}")
-    public SportHall getSportHallById(@PathVariable UUID id) {
+    public ResponseEntity<?> getSportHallById(@PathVariable UUID id) {
         return sportHallService.getSportHallById(id);
     }
 }

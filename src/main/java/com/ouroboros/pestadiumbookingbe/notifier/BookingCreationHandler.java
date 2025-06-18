@@ -22,8 +22,9 @@ public class BookingCreationHandler implements BookingNotificationHandler {
     public void notify(Booking booking) {
         logger.info("Sending booking creation email for booking: {}", booking.getId());
 
-        BookingSummary bookingSummary = bookingMapper.toBookingSummary(booking);
         try {
+            BookingSummary bookingSummary = bookingMapper.toBookingSummary(booking);
+
             String subject = "Booking Creation";
             String text = String.format("Your booking for %s on %s from %s to %s has been created",
                     bookingSummary.getSportHallName(),

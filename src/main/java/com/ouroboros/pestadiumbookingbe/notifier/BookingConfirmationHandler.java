@@ -25,8 +25,9 @@ public class BookingConfirmationHandler implements BookingNotificationHandler {
     public void notify(Booking booking) {
         logger.info("Sending booking confirmation email for booking: {}", booking.getId());
 
-        BookingSummary bookingSummary = bookingMapper.toBookingSummary(booking);
         try {
+            BookingSummary bookingSummary = bookingMapper.toBookingSummary(booking);
+
             String subject = "Booking Confirmation";
             String text = String.format("Your booking for %s on %s from %s to %s has been confirmed.",
                     bookingSummary.getSportHallName(),

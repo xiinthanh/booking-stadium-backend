@@ -44,33 +44,38 @@ public class IcsFileGenerator {
             return new ByteArrayOutputStream();
         }
 
-        LocalTime startTime = bookingSummary.getStartTime();
-        LocalTime endTime = bookingSummary.getEndTime();
+        try {
+            LocalTime startTime = bookingSummary.getStartTime();
+            LocalTime endTime = bookingSummary.getEndTime();
 
-        ZonedDateTime start = ZonedDateTime.of(bookingSummary.getBookingDate(), startTime, ZoneId.of(ZoneIdName));
-        ZonedDateTime end = ZonedDateTime.of(bookingSummary.getBookingDate(), endTime, ZoneId.of(ZoneIdName));
+            ZonedDateTime start = ZonedDateTime.of(bookingSummary.getBookingDate(), startTime, ZoneId.of(ZoneIdName));
+            ZonedDateTime end = ZonedDateTime.of(bookingSummary.getBookingDate(), endTime, ZoneId.of(ZoneIdName));
 
-        DateTime startDateTime = new DateTime(start.toInstant().toEpochMilli());
-        DateTime endDateTime = new DateTime(end.toInstant().toEpochMilli());
+            DateTime startDateTime = new DateTime(start.toInstant().toEpochMilli());
+            DateTime endDateTime = new DateTime(end.toInstant().toEpochMilli());
 
-        VEvent meeting = new VEvent();
-        meeting.getProperties().add(new DtStart(startDateTime));
-        meeting.getProperties().add(new DtEnd(endDateTime));
-        meeting.getProperties().add(new Summary("Booking for " + bookingSummary.getSportHallName()));
+            VEvent meeting = new VEvent();
+            meeting.getProperties().add(new DtStart(startDateTime));
+            meeting.getProperties().add(new DtEnd(endDateTime));
+            meeting.getProperties().add(new Summary("Booking for " + bookingSummary.getSportHallName()));
 
-        meeting.getProperties().add(new Description("Purpose: " + bookingSummary.getPurpose()));
-        meeting.getProperties().add(new Uid(UUID.randomUUID().toString()));
-        meeting.getProperties().add(new Location("Sport Hall: " + bookingSummary.getSportHallName()));
+            meeting.getProperties().add(new Description("Purpose: " + bookingSummary.getPurpose()));
+            meeting.getProperties().add(new Uid(UUID.randomUUID().toString()));
+            meeting.getProperties().add(new Location("Sport Hall: " + bookingSummary.getSportHallName()));
 
-        Calendar calendar = new Calendar();
-        calendar.getProperties().add(new ProdId("-//PE Stadium Booking//iCal4j 1.0//EN"));
-        calendar.getProperties().add(Version.VERSION_2_0);
-        calendar.getProperties().add(CalScale.GREGORIAN);
-        calendar.getComponents().add(meeting);
+            Calendar calendar = new Calendar();
+            calendar.getProperties().add(new ProdId("-//PE Stadium Booking//iCal4j 1.0//EN"));
+            calendar.getProperties().add(Version.VERSION_2_0);
+            calendar.getProperties().add(CalScale.GREGORIAN);
+            calendar.getComponents().add(meeting);
 
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        CalendarOutputter outputter = new CalendarOutputter();
-        outputter.output(calendar, out);
-        return out;
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            CalendarOutputter outputter = new CalendarOutputter();
+            outputter.output(calendar, out);
+            return out;
+        } catch (Exception e) {
+            logger.error("Error generating ICS file for booking: {}", bookingSummary, e);
+            throw new Exception("Failed to generate ICS file", e);
+        }
     }
 }
