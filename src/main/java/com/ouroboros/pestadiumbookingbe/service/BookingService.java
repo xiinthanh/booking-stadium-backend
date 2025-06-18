@@ -78,17 +78,17 @@ public class BookingService {
 
     public ResponseEntity<?> cancelBooking(UUID bookingId, UUID canceledBy) {
         logger.info("Canceling booking with ID: {} by user: {}", bookingId, canceledBy);
-        Booking booking = bookingRepository.findById(bookingId).orElse(null);
-
-        if (booking == null) {
-            return ResponseEntity.badRequest().body("Booking not found.");
-        }
-
-        if (booking.getStatus() != Status.pending && booking.getStatus() != Status.confirmed) {
-            return ResponseEntity.badRequest().body("Only pending/confirmed bookings can be canceled.");
-        }
-
         try {
+            Booking booking = bookingRepository.findById(bookingId).orElse(null);
+
+            if (booking == null) {
+                return ResponseEntity.badRequest().body("Booking not found.");
+            }
+
+            if (booking.getStatus() != Status.pending && booking.getStatus() != Status.confirmed) {
+                return ResponseEntity.badRequest().body("Only pending/confirmed bookings can be canceled.");
+            }
+
             booking.setCanceledAt(OffsetDateTime.now());
             booking.setCanceledBy(canceledBy);
             booking.setStatus(Status.rejected);
@@ -99,6 +99,10 @@ public class BookingService {
             notificationService.notifyOnBookingChange(booking, BookingNotificationType.CANCELLATION);
 
             return ResponseEntity.ok(updatedBooking);
+        } catch (org.springframework.dao.DataAccessException ex) {
+            logger.error("Database error during booking cancellation", ex);
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body("The service is temporarily unavailable due to database issues. Please try again later.");
         } catch (Exception e) {
             logger.error("Error canceling booking with ID: {}", bookingId, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred while canceling the booking.");
@@ -147,6 +151,10 @@ public class BookingService {
             notificationService.notifyOnBookingChange(booking, BookingNotificationType.CONFIRMATION);
 
             return ResponseEntity.ok(updatedBooking);
+        } catch (org.springframework.dao.DataAccessException ex) {
+            logger.error("Database error during booking confirmation", ex);
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body("The service is temporarily unavailable due to database issues. Please try again later.");
         } catch (Exception e) {
             logger.error("Error confirming booking with ID: {}", bookingId, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred while confirming the booking.");
@@ -181,41 +189,55 @@ public class BookingService {
             notificationService.notifyOnBookingChange(booking, BookingNotificationType.MODIFICATION);
 
             return ResponseEntity.ok("Booking modified successfully.");
+        } catch (org.springframework.dao.DataAccessException ex) {
+            logger.error("Database error during booking modification", ex);
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body("The service is temporarily unavailable due to database issues. Please try again later.");
         } catch (Exception e) {
             logger.error("Error modifying booking with ID: {}", bookingId, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred while modifying the booking.");
         }
     }
 
-    public List<Booking> getAllBookings() {
+    public ResponseEntity<?> getAllBookings() {
         logger.info("Fetching all bookings");
         try {
-            return bookingRepository.findAll();
+            return ResponseEntity.ok(bookingRepository.findAll());
+        } catch (org.springframework.dao.DataAccessException ex) {
+            logger.error("Database error fetching all bookings", ex);
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(List.of());
         } catch (Exception e) {
             logger.error("Error fetching all bookings: {}", e.getMessage(), e);
-            return List.of();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(List.of());
         }
     }
 
-    public Booking getBookingById(UUID id) {
+    public ResponseEntity<?> getBookingById(UUID id) {
         logger.info("Fetching booking with bookingID: {}", id);
         try {
-            return bookingRepository.findById(id).orElse(null);
+            return ResponseEntity.ok(bookingRepository.findById(id).orElse(null));
+        } catch (org.springframework.dao.DataAccessException ex) {
+            logger.error("Database error fetching booking with ID: {}", id, ex);
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(null);
         } catch (Exception e) {
             logger.error("Error fetching booking with ID: {}", id, e);
-            return null;
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
 
-    public List<Booking> getBookingsByUserId(UUID userId) {
+    public ResponseEntity<?> getBookingsByUserId(UUID userId) {
         logger.info("Fetching bookings for userId: {}", userId);
         try {
-            return bookingRepository.findAll().stream()
+            List<Booking> bookings = bookingRepository.findAll().stream()
                     .filter(booking -> booking.getUserId().equals(userId))
                     .toList();
+            return ResponseEntity.ok(bookings);
+        } catch (org.springframework.dao.DataAccessException ex) {
+            logger.error("Database error fetching bookings for userId: {}", userId, ex);
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(List.of());
         } catch (Exception e) {
             logger.error("Error fetching bookings for userId: {}", userId, e);
-            return List.of();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(List.of());
         }
     }
 }

@@ -25,8 +25,9 @@ public class BookingModificationHandler implements BookingNotificationHandler {
     public void notify(Booking booking) {
         logger.info("Sending booking modification email for booking: {}", booking.getId());
 
-        BookingSummary bookingSummary = bookingMapper.toBookingSummary(booking);
         try {
+            BookingSummary bookingSummary = bookingMapper.toBookingSummary(booking);
+
             String subject = "Booking Modification";
             String text = String.format("Your booking for %s on %s from %s to %s has been modified by %s.",
                     bookingSummary.getSportHallName(),

@@ -55,17 +55,17 @@ public class BookingController {
     }
 
     @GetMapping("/get-bookings")
-    public List<Booking> getAllBookings() {
+    public ResponseEntity<?> getAllBookings() {
         return bookingService.getAllBookings();
     }
 
     @GetMapping("/get-booking/{id}")
-    public Booking getBookingById(@PathVariable UUID id) {
+    public ResponseEntity<?> getBookingById(@PathVariable UUID id) {
         return bookingService.getBookingById(id);
     }
 
     @GetMapping("/get-bookings-by-user/{userId}")
-    public List<Booking> getBookingsByUserId(@PathVariable UUID userId) {
+    public ResponseEntity<?> getBookingsByUserId(@PathVariable UUID userId) {
         return bookingService.getBookingsByUserId(userId);
     }
 }

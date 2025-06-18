@@ -5,6 +5,7 @@ import com.ouroboros.pestadiumbookingbe.repository.ProfileRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -19,49 +20,61 @@ public class ProfileService {
     @Autowired
     private ProfileRepository profileRepository;
 
-    public List<Profile> getAllProfiles() {
+    public ResponseEntity<?> getAllProfiles() {
         logger.info("Fetching all profiles");
         try {
-            return profileRepository.findAll();
+            return ResponseEntity.ok(profileRepository.findAll());
+        } catch (org.springframework.dao.DataAccessException ex) {
+            logger.error("Database error fetching profiles", ex);
+            return ResponseEntity.status(503).body(List.of());
         } catch (Exception e) {
             logger.error("Error fetching profiles", e);
-            return List.of();
+            return ResponseEntity.status(500).body(List.of());
         }
     }
 
-    public Profile getProfileById(UUID id) {
+    public ResponseEntity<?> getProfileById(UUID id) {
         logger.info("Fetching profile with ID: {}", id);
         try {
-            return profileRepository.findById(id).orElse(null);
+            return ResponseEntity.ok(profileRepository.findById(id).orElse(null));
+        } catch (org.springframework.dao.DataAccessException ex) {
+            logger.error("Database error fetching profile with ID: {}", id, ex);
+            return ResponseEntity.status(503).body(null);
         } catch (Exception e) {
             logger.error("Error fetching profile with ID: {}", id, e);
-            return null;
+            return ResponseEntity.status(500).body(null);
         }
     }
 
-    public Profile updateProfile(Profile profile) {
+    public ResponseEntity<?> updateProfile(Profile profile) {
         logger.info("Updating profile with ID: {}", profile.getId());
         try {
-            return profileRepository.save(profile);
+            return ResponseEntity.ok(profileRepository.save(profile));
+        } catch (org.springframework.dao.DataAccessException ex) {
+            logger.error("Database error updating profile with ID: {}", profile.getId(), ex);
+            return ResponseEntity.status(503).body(null);
         } catch (Exception e) {
             logger.error("Error updating profile with ID: {}", profile.getId(), e);
-            return null;
+            return ResponseEntity.status(500).body(null);
         }
     }
 
-    public String getEmailByUserId(UUID userId) {
+    public ResponseEntity<String> getEmailByUserId(UUID userId) {
         logger.info("Fetching email for user ID: {}", userId);
         try {
             Optional<Profile> profile = profileRepository.findById(userId);
             if (profile.isPresent()) {
-                return profile.get().getEmail();
+                return ResponseEntity.ok(profile.get().getEmail());
             } else {
                 logger.warn("No profile found for user ID: {}", userId);
-                return null;
+                return ResponseEntity.status(404).body(null);
             }
+        } catch (org.springframework.dao.DataAccessException ex) {
+            logger.error("Database error fetching email for user ID: {}", userId, ex);
+            return ResponseEntity.status(503).body(null);
         } catch (Exception e) {
             logger.error("Error fetching email for user ID: {}", userId, e);
-            return null;
+            return ResponseEntity.status(500).body(null);
         }
     }
 }
