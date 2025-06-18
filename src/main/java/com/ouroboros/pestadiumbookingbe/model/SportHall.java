@@ -10,6 +10,7 @@ import java.util.UUID;
 public class SportHall {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(columnDefinition = "uuid", updatable = false, nullable = false)
     private UUID id;
 

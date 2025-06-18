@@ -12,6 +12,7 @@ import java.util.UUID;
 })
 public class Booking {
     @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(columnDefinition = "uuid", updatable = false, nullable = false)
     private UUID id;
 

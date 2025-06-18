@@ -1,7 +1,7 @@
 package com.ouroboros.pestadiumbookingbe.controller;
 
-import com.ouroboros.pestadiumbookingbe.model.TimeSlot;
-import com.ouroboros.pestadiumbookingbe.service.TimeSlotService;
+import com.ouroboros.pestadiumbookingbe.service.SearchService;
+import com.ouroboros.pestadiumbookingbe.service.StadiumInfoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -17,15 +16,17 @@ import java.util.UUID;
 public class TimeSlotController {
 
     @Autowired
-    private TimeSlotService timeSlotService;
+    private StadiumInfoService stadiumInfoService;
+    @Autowired
+    private SearchService searchService;
 
     @GetMapping("/get-time-slots")
     public ResponseEntity<?> getAllTimeSlots() {
-        return timeSlotService.getAllTimeSlots();
+        return stadiumInfoService.getAllTimeSlots();
     }
 
     @GetMapping("/get-time-slot/{id}")
     public ResponseEntity<?> getTimeSlot(@PathVariable UUID id) {
-        return timeSlotService.getTimeSlotById(id);
+        return searchService.getTimeSlotById(id);
     }
 }

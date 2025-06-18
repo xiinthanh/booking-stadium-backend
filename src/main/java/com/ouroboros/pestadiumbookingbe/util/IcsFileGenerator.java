@@ -1,34 +1,23 @@
 package com.ouroboros.pestadiumbookingbe.util;
 // IcsFileGenerator.java
 import com.ouroboros.pestadiumbookingbe.dto.BookingSummary;
-import com.ouroboros.pestadiumbookingbe.model.Booking;
-import com.ouroboros.pestadiumbookingbe.model.TimeSlot;
-import com.ouroboros.pestadiumbookingbe.service.TimeSlotService;
 import net.fortuna.ical4j.data.CalendarOutputter;
 import net.fortuna.ical4j.model.*;
 import net.fortuna.ical4j.model.component.VEvent;
 import net.fortuna.ical4j.model.property.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayOutputStream;
 import java.time.*;
-import java.time.temporal.Temporal;
 import java.util.UUID;
 
 @Component
 public class IcsFileGenerator {
 
     private static final Logger logger = LoggerFactory.getLogger(IcsFileGenerator.class);
-    private final TimeSlotService timeSlotService;
     private final String ZoneIdName = "Asia/Ho_Chi_Minh";
-
-    @Autowired
-    public IcsFileGenerator(TimeSlotService timeSlotService) {
-        this.timeSlotService = timeSlotService;
-    }
 
     public ByteArrayOutputStream generateIcsStream(BookingSummary bookingSummary) throws Exception {
         if (bookingSummary == null) {
