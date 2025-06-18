@@ -2,12 +2,17 @@ package com.ouroboros.pestadiumbookingbe.controller;
 
 import com.ouroboros.pestadiumbookingbe.model.Booking;
 import com.ouroboros.pestadiumbookingbe.model.BookingRequest;
+import com.ouroboros.pestadiumbookingbe.notifier.BookingCancellationHandler;
 import com.ouroboros.pestadiumbookingbe.service.BookingService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -16,6 +21,8 @@ public class BookingController {
 
     @Autowired
     private BookingService bookingService;
+
+    private static final Logger logger = LoggerFactory.getLogger(BookingController.class);
 
     @PostMapping("/create-booking")
     public ResponseEntity<?> createBooking(@RequestBody BookingRequest bookingRequest) {
@@ -31,8 +38,17 @@ public class BookingController {
     }
 
     @PostMapping("/cancel-booking")
-    public ResponseEntity<?> cancelBooking(@RequestParam UUID bookingId, @RequestParam UUID canceledBy) {
-        return bookingService.cancelBooking(bookingId, canceledBy);
+    public ResponseEntity<?> cancelBooking(@RequestBody Map<String, String> requestBody) {
+        try {
+            UUID bookingId = UUID.fromString(requestBody.get("bookingId"));
+            UUID canceledBy = UUID.fromString(requestBody.get("canceledBy"));
+            return bookingService.cancelBooking(bookingId, canceledBy);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body("Invalid UUID format in request.");
+        } catch (Exception e) {
+            logger.error("Error occurred while canceling booking: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred. Please try again later.");
+        }
     }
 
     @PostMapping("/confirm-booking")

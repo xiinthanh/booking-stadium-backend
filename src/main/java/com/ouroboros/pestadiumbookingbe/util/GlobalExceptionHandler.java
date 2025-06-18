@@ -7,8 +7,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @Hidden
 @ControllerAdvice
@@ -30,6 +32,13 @@ public class GlobalExceptionHandler {
         logger.error("Invalid argument provided: {}", ex.getMessage(), ex);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body("Invalid input format. Please check your request and try again.");
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<String> handleMissingServletRequestParameterException(MissingServletRequestParameterException ex) {
+        logger.error("Missing request parameter: {}", ex.getParameterName(), ex);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body("Required request parameter '" + ex.getParameterName() + "' is missing.");
     }
 
     @ExceptionHandler(Exception.class)
