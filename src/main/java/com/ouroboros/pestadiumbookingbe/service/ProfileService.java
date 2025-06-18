@@ -36,13 +36,13 @@ public class ProfileService {
     public ResponseEntity<?> getProfileById(UUID id) {
         logger.info("Fetching profile with ID: {}", id);
         try {
-            Profile foundProfile = profileRepository.findById(id)
-                    .orElse(null);
-            if (foundProfile == null) {
+            Optional<Profile> profile = profileRepository.findById(id);
+            if (profile.isPresent()) {
+                return ResponseEntity.ok(profile.get());
+            } else {
                 logger.warn("No profile found for ID: {}", id);
                 return ResponseEntity.status(404).body(null);
             }
-            return ResponseEntity.ok(foundProfile);
         } catch (org.springframework.dao.DataAccessException ex) {
             logger.error("Database error fetching profile with ID: {}", id, ex);
             return ResponseEntity.status(503).body(null);

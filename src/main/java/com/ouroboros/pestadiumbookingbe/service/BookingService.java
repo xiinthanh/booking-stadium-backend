@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -215,7 +216,13 @@ public class BookingService {
     public ResponseEntity<?> getBookingById(UUID id) {
         logger.info("Fetching booking with bookingID: {}", id);
         try {
-            return ResponseEntity.ok(bookingRepository.findById(id).orElse(null));
+            Optional<Booking> booking = bookingRepository.findById(id);
+            if (booking.isPresent()) {
+                return ResponseEntity.ok(booking.get());
+            } else {
+                logger.warn("No booking found for ID: {}", id);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Booking id not found.");
+            }
         } catch (org.springframework.dao.DataAccessException ex) {
             logger.error("Database error fetching booking with ID: {}", id, ex);
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(null);
