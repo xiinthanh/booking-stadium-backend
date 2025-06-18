@@ -82,7 +82,7 @@ public class BookingService {
             Booking booking = bookingRepository.findById(bookingId).orElse(null);
 
             if (booking == null) {
-                return ResponseEntity.badRequest().body("Booking not found.");
+                return ResponseEntity.status(404).body("Booking not found.");
             }
 
             if (booking.getStatus() != Status.pending && booking.getStatus() != Status.confirmed) {

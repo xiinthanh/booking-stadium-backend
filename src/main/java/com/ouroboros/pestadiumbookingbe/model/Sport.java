@@ -8,7 +8,7 @@ import java.time.Instant;
 @Table(name = "sports")
 public class Sport {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue
     @Column(columnDefinition = "uuid", updatable = false, nullable = false)
     private UUID id;
 
