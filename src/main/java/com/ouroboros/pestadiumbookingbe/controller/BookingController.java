@@ -1,8 +1,9 @@
 package com.ouroboros.pestadiumbookingbe.controller;
 
-import com.ouroboros.pestadiumbookingbe.model.Booking;
-import com.ouroboros.pestadiumbookingbe.model.BookingRequest;
-import com.ouroboros.pestadiumbookingbe.notifier.BookingCancellationHandler;
+import com.ouroboros.pestadiumbookingbe.dto.BookingRequest;
+import com.ouroboros.pestadiumbookingbe.dto.CancelRequest;
+import com.ouroboros.pestadiumbookingbe.dto.ConfirmRequest;
+import com.ouroboros.pestadiumbookingbe.dto.ModifyRequest;
 import com.ouroboros.pestadiumbookingbe.service.BookingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,8 +12,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -38,11 +37,9 @@ public class BookingController {
     }
 
     @PostMapping("/cancel-booking")
-    public ResponseEntity<?> cancelBooking(@RequestBody Map<String, String> requestBody) {
+    public ResponseEntity<?> cancelBooking(@RequestBody CancelRequest cancelRequest) {
         try {
-            UUID bookingId = UUID.fromString(requestBody.get("bookingId"));
-            UUID canceledBy = UUID.fromString(requestBody.get("canceledBy"));
-            return bookingService.cancelBooking(bookingId, canceledBy);
+            return bookingService.cancelBooking(cancelRequest.getBookingId(), cancelRequest.getCanceledBy());
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body("Invalid UUID format in request.");
         } catch (Exception e) {
@@ -52,21 +49,28 @@ public class BookingController {
     }
 
     @PostMapping("/confirm-booking")
-    public ResponseEntity<?> confirmBooking(@RequestParam UUID bookingId, @RequestParam UUID confirmedBy) {
-        return bookingService.confirmBooking(bookingId, confirmedBy);
+    public ResponseEntity<?> confirmBooking(@RequestBody ConfirmRequest confirmRequest) {
+        try {
+            return bookingService.confirmBooking(confirmRequest.getBookingId(), confirmRequest.getConfirmedBy());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body("Invalid UUID format in request.");
+        } catch (Exception e) {
+            logger.error("Error occurred while confirming booking: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred. Please try again later.");
+        }
     }
 
     @PostMapping("/modify-booking")
-    public ResponseEntity<?> modifyBooking(@RequestParam UUID bookingId, @RequestParam UUID modifiedByUserId, @RequestBody BookingRequest bookingRequest) {
+    public ResponseEntity<?> modifyBooking(@RequestBody ModifyRequest modifyRequest) {
         return bookingService.modifyBooking(
-            bookingId,
-            modifiedByUserId,
-            bookingRequest.getUserId(),
-            bookingRequest.getSportHallId(),
-            bookingRequest.getSportId(),
-            bookingRequest.getDate(),
-            bookingRequest.getTimeSlotId(),
-            bookingRequest.getPurpose()
+            modifyRequest.getBookingId(),
+            modifyRequest.getModifiedByUserId(),
+            modifyRequest.getUserId(),
+            modifyRequest.getSportHallId(),
+            modifyRequest.getSportId(),
+            modifyRequest.getDate(),
+            modifyRequest.getTimeSlotId(),
+            modifyRequest.getPurpose()
         );
     }
 
@@ -91,3 +95,4 @@ public class BookingController {
         }
     }
 }
+

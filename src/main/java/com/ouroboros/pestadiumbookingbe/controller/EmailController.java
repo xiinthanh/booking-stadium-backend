@@ -3,7 +3,7 @@ package com.ouroboros.pestadiumbookingbe.controller;
 
 import com.ouroboros.pestadiumbookingbe.dto.BookingSummary;
 import com.ouroboros.pestadiumbookingbe.model.Booking;
-import com.ouroboros.pestadiumbookingbe.model.BookingRequest;
+import com.ouroboros.pestadiumbookingbe.dto.BookingRequest;
 
 import com.ouroboros.pestadiumbookingbe.util.BookingMapper;
 import com.ouroboros.pestadiumbookingbe.util.EmailSender;
