@@ -22,13 +22,12 @@ public class BookingService {
     private static final Logger logger = LoggerFactory.getLogger(BookingService.class);
 
     @Autowired
-    private BookingRepository bookingRepository;
+    public BookingRepository bookingRepository;
     @Autowired
-    private NotificationService notificationService;
+    public NotificationService notificationService;
 
     public ResponseEntity<?> createBooking(UUID userId, UUID sportHallId, UUID sportId, LocalDate date, UUID timeSlotId, String purpose) {
         logger.info("Creating booking for userId: {}, sportHallId: {}, sportId: {}, date: {}, timeSlotId: {}, purpose: {}", userId, sportHallId, sportId, date, timeSlotId, purpose);
-
         try {
             // Validate input parameters
             if (userId == null || sportHallId == null || sportId == null || date == null || timeSlotId == null || purpose == null || purpose.isEmpty()) {
@@ -67,6 +66,10 @@ public class BookingService {
             notificationService.notifyOnBookingChange(booking, BookingNotificationType.CREATION);
 
             return ResponseEntity.ok(savedBooking);
+        } catch (org.springframework.dao.DataAccessException ex) {
+            logger.error("Database error during booking creation", ex);
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body("The service is temporarily unavailable due to database issues. Please try again later.");
         } catch (Exception e) {
             logger.error("Error occurred while creating booking: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred while creating the booking.");
