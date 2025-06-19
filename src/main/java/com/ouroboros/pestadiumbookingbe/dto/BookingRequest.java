@@ -1,4 +1,4 @@
-package com.ouroboros.pestadiumbookingbe.model;
+package com.ouroboros.pestadiumbookingbe.dto;
 
 import java.time.LocalDate;
 import java.util.UUID;
