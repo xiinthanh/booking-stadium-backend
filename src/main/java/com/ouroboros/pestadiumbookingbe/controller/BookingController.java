@@ -1,18 +1,13 @@
 package com.ouroboros.pestadiumbookingbe.controller;
 
-import com.ouroboros.pestadiumbookingbe.model.Booking;
-import com.ouroboros.pestadiumbookingbe.model.BookingRequest;
-import com.ouroboros.pestadiumbookingbe.notifier.BookingCancellationHandler;
+import com.ouroboros.pestadiumbookingbe.dto.BookingRequest;
 import com.ouroboros.pestadiumbookingbe.service.BookingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 @RestController

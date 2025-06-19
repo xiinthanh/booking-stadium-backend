@@ -2,6 +2,7 @@ package com.ouroboros.pestadiumbookingbe.service;
 
 import com.ouroboros.pestadiumbookingbe.model.Profile;
 import com.ouroboros.pestadiumbookingbe.repository.ProfileRepository;
+import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,6 +58,7 @@ public class ProfileService {
         }
     }
 
+    @Transactional
     public ResponseEntity<?> updateProfile(Profile profile) {
         logger.info("Updating profile with ID: {}", profile.getId());
         try {

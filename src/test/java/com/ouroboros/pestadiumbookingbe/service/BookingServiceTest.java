@@ -1,8 +1,10 @@
 package com.ouroboros.pestadiumbookingbe.service;
 
+import com.ouroboros.pestadiumbookingbe.model.Profile;
 import com.ouroboros.pestadiumbookingbe.model.Status;
 import com.ouroboros.pestadiumbookingbe.repository.BookingRepository;
 import com.ouroboros.pestadiumbookingbe.repository.ProfileRepository;
+import com.ouroboros.pestadiumbookingbe.repository.SportHallRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.ResponseEntity;
