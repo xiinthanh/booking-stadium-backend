@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 @Component
 public class EmailSender {
@@ -41,6 +42,16 @@ public class EmailSender {
 
             // Send the email asynchronously
             CompletableFuture<MessageResponse> response = mailgunMessagesApi.sendMessageAsync(domain, message);
+            response.exceptionally(e -> {
+                logger.error("Retrying email due to failure: {}", e.getMessage());
+                try {
+                    TimeUnit.SECONDS.sleep(2); // Retry after 2 seconds
+                    return mailgunMessagesApi.sendMessage(domain, message);
+                } catch (Exception retryException) {
+                    logger.error("Retry failed: {}", retryException.getMessage());
+                    throw new RuntimeException("Failed to send email after retry", retryException);
+                }
+            });
 
             logger.info("Email ({}) sent successfully to {}", text, to);
         } catch (Exception e) {
@@ -70,6 +81,16 @@ public class EmailSender {
                     .build();
 
             CompletableFuture<MessageResponse> response = mailgunMessagesApi.sendMessageAsync(domain, message);
+            response.exceptionally(e -> {
+                logger.error("Retrying email with attachment due to failure: {}", e.getMessage());
+                try {
+                    TimeUnit.SECONDS.sleep(2); // Retry after 2 seconds
+                    return mailgunMessagesApi.sendMessage(domain, message);
+                } catch (Exception retryException) {
+                    logger.error("Retry failed: {}", retryException.getMessage());
+                    throw new RuntimeException("Failed to send email with attachment after retry", retryException);
+                }
+            });
 
             logger.info("Email with .ics attachment sent to {}", to);
         } catch (Exception e) {
@@ -78,4 +99,3 @@ public class EmailSender {
         }
     }
 }
-
