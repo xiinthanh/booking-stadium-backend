@@ -29,12 +29,11 @@ public class BookingModificationHandler implements BookingNotificationHandler {
             BookingSummary bookingSummary = bookingMapper.toBookingSummary(booking);
 
             String subject = "Booking Modification";
-            String text = String.format("Your booking for %s on %s from %s to %s has been modified by %s.",
+            String text = String.format("Your booking for %s on %s from %s to %s has been modified.",
                     bookingSummary.getSportHallName(),
                     bookingSummary.getBookingDate(),
                     bookingSummary.getStartTime(),
-                    bookingSummary.getEndTime(),
-                    bookingSummary.getCanceledByEmailAddress());
+                    bookingSummary.getEndTime());
             byte[] icsBytes = icsFileGenerator.generateIcsStream(bookingSummary).toByteArray();
             emailSender.sendEmailWithIcsAttachment(bookingSummary.getSenderEmailAddress(), subject, text, icsBytes);
         } catch (Exception e) {
