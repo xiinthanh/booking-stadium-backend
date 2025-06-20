@@ -295,11 +295,13 @@ public class BookingService {
             }
 
             // is occupied by another booking (not itself)
-            if (isOccupiedBooking(sportHallId, date, timeSlotId) && (
-                    booking.getSportHallId() != sportHallId ||
-                    booking.getTimeSlotId() != timeSlotId ||
-                    !booking.getBookingDate().equals(date))) {
-                return ResponseEntity.badRequest().body("A booking already exists for the given combination.");
+            if (!booking.getSportHallId().equals(sportHallId) ||
+                    !booking.getBookingDate().equals(date) ||
+                    !booking.getTimeSlotId().equals(timeSlotId)) {
+                // the (sportHallId, bookingDate, getTimeSlotId) value of the new version does not match the older version
+                if (isOccupiedBooking(sportHallId, date, timeSlotId)) {
+                    return ResponseEntity.badRequest().body("A booking already exists for the given combination.");
+                }
             }
 
             // Update booking details
