@@ -48,7 +48,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         String jwtToken = authHeader.substring("Bearer ".length());
         logger.info("JWT Token: {}", jwtToken);
         try {
-            Key key = Keys.hmacShaKeyFor(Base64.getDecoder().decode(jwtSecret));
+            Key key = Keys.hmacShaKeyFor(jwtSecret.getBytes()); // Ensure the secret is properly encoded
             Claims claims = Jwts.parserBuilder()
                     .setSigningKey(key)
                     .build()
