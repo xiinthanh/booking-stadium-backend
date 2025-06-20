@@ -236,8 +236,6 @@ public class BookingService {
 
             // Update booking details
             booking.setStatus(Status.pending);  // Reset status to pending, waiting for confirmation from admin
-            booking.setCanceledAt(OffsetDateTime.now());
-            booking.setCanceledBy(modifiedByUserId);
             bookingRepository.save(booking);
 
             // Notify the user about the booking modification
