@@ -56,6 +56,11 @@ public class BookingController {
         );
     }
 
+    @PostMapping("/delete-booking")
+    public ResponseEntity<?> deleteBooking(@RequestParam UUID bookingId, @RequestParam UUID deletedBy) {
+        return bookingService.deleteBooking(bookingId, deletedBy);
+    }
+
     @GetMapping("/get-bookings")
     public ResponseEntity<?> getAllBookings() {
         return bookingService.getAllBookings();

@@ -37,7 +37,7 @@ public class BookingCreationHandler implements BookingNotificationHandler {
             byte[] icsBytes = icsFileGenerator.generateIcsStream(bookingSummary).toByteArray();
             emailSender.sendEmailWithIcsAttachment(bookingSummary.getSenderEmailAddress(), subject, text, icsBytes);
         } catch (Exception e) {
-            logger.error("Failed to send booking rejection email for booking: {}", booking.getId(), e);
+            logger.error("Failed to send booking creation email for booking: {}", booking.getId(), e);
         }
     }
 

@@ -333,6 +333,45 @@ public class BookingService {
         }
     }
 
+    public ResponseEntity<?> deleteBooking(UUID bookingId, UUID deletedBy) {
+        logger.info("Canceling booking with ID: {} by user: {}", bookingId, deletedBy);
+        try {
+            // Lock the booking to prevent concurrent modifications
+            Booking booking = bookingRepository.findAndLockById(bookingId).orElse(null);
+            if (booking == null) {
+                logger.error("Booking not found with ID: {}", bookingId);
+                return ResponseEntity.status(404).body("Booking not found.");
+            }
+
+            if (isInvalidUser(deletedBy)) {
+                return ResponseEntity.badRequest().body("User profile not found.");
+            }
+
+            bookingRepository.delete(booking);
+
+            // Notify the user about the booking deletion
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    notificationService.notifyOnBookingChange(booking, BookingNotificationType.DELETION);
+                }
+            });
+
+            logger.info("Booking deleted successfully with ID: {}", bookingId);
+            return ResponseEntity.ok("Booking deleted successfully.");
+        } catch (org.springframework.dao.DataAccessException ex) {
+            logger.error("Database error during booking deletion for booking ID: {}", bookingId, ex);
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body("The service is temporarily unavailable due to database issues. Please try again later.");
+        } catch (TransactionTimedOutException ex) {
+            logger.error("Transaction timed out during booking deletion for booking ID: {}", bookingId, ex);
+            return ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT).body("The request timed out. Please try again later.");
+        } catch (Exception e) {
+            logger.error("Unexpected error canceling booking with ID: {}", bookingId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred while canceling the booking.");
+        }
+    }
+
     public ResponseEntity<?> getAllBookings() {
         logger.info("Fetching all bookings");
         try {

@@ -11,7 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
-public class BookingModificationHandler implements BookingNotificationHandler {
+public class BookingDeletionHandler implements BookingNotificationHandler {
     @Autowired
     private BookingMapper bookingMapper;
     @Autowired
@@ -19,17 +19,17 @@ public class BookingModificationHandler implements BookingNotificationHandler {
     @Autowired
     private IcsFileGenerator icsFileGenerator;
 
-    private static final Logger logger = LoggerFactory.getLogger(BookingModificationHandler.class);
+    private static final Logger logger = LoggerFactory.getLogger(BookingDeletionHandler.class);
 
     @Override
     public void notify(Booking booking) {
-        logger.info("Sending booking modification email for booking: {}", booking.getId());
+        logger.info("Sending booking deletion email for booking: {}", booking.getId());
 
         try {
             BookingSummary bookingSummary = bookingMapper.toBookingSummary(booking);
 
-            String subject = "Booking Modification";
-            String text = String.format("Your booking has been modified to %s on %s from %s to %s.",
+            String subject = "Booking Deletion";
+            String text = String.format("Your booking for %s on %s from %s to %s has been deleted.",
                     bookingSummary.getSportHallName(),
                     bookingSummary.getBookingDate(),
                     bookingSummary.getStartTime(),
@@ -37,12 +37,12 @@ public class BookingModificationHandler implements BookingNotificationHandler {
             byte[] icsBytes = icsFileGenerator.generateIcsStream(bookingSummary).toByteArray();
             emailSender.sendEmailWithIcsAttachment(bookingSummary.getSenderEmailAddress(), subject, text, icsBytes);
         } catch (Exception e) {
-            logger.error("Failed to send booking modification email for booking: {}", booking.getId(), e);
+            logger.error("Failed to send booking deletion email for booking: {}", booking.getId(), e);
         }
     }
 
     @Override
     public BookingNotificationType getType() {
-        return BookingNotificationType.MODIFICATION;
+        return BookingNotificationType.DELETION;
     }
 }
