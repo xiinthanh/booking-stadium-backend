@@ -25,7 +25,8 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<Booking> findAndLockById(UUID id);
 
-    long countByUserIdAndBookingDateAndStatus(UUID userId, LocalDate date, Status status);
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    long countAndLockByUserIdAndBookingDateAndStatus(UUID userId, LocalDate date, Status status);
 
     List<Booking> findByUserId(UUID userId);
 }
