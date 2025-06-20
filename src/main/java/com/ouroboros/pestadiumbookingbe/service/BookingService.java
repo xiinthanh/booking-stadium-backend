@@ -79,8 +79,8 @@ public class BookingService {
 
     private boolean quotaExceeded(UUID userId, LocalDate date) {
         // Rule: A user can only have 1 booking/day
-        long count = bookingRepository.countByUserIdAndBookingDateAndStatus(userId, date, Status.confirmed)
-                + bookingRepository.countByUserIdAndBookingDateAndStatus(userId, date, Status.pending);
+        long count = bookingRepository.countAndLockByUserIdAndBookingDateAndStatus(userId, date, Status.confirmed)
+                + bookingRepository.countAndLockByUserIdAndBookingDateAndStatus(userId, date, Status.pending);
         if (count >= 1) {
             logger.warn("Quota exceeded for userId: {} on date: {}", userId, date);
             return true;
@@ -287,6 +287,11 @@ public class BookingService {
             if (booking.getStatus() != Status.pending && booking.getStatus() != Status.confirmed) {
                 logger.error("Invalid booking status for modification: {}", booking.getStatus());
                 return ResponseEntity.badRequest().body("Only pending/confirmed bookings can be modified.");
+            }
+
+            // Quota check: if the booking date is changed, check if the user exceeds their quota on the new date
+            if (!booking.getBookingDate().equals(date) && quotaExceeded(userId, date)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Quota exceeded for the user on the new date.");
             }
 
             if (isOccupiedBooking(sportHallId, date, timeSlotId)) {
