@@ -333,8 +333,9 @@ public class BookingService {
         }
     }
 
+    @Transactional(timeout = 2)  // Ensure transaction is active for database operations
     public ResponseEntity<?> deleteBooking(UUID bookingId, UUID deletedBy) {
-        logger.info("Canceling booking with ID: {} by user: {}", bookingId, deletedBy);
+        logger.info("Deleting booking with ID: {} by user: {}", bookingId, deletedBy);
         try {
             // Lock the booking to prevent concurrent modifications
             Booking booking = bookingRepository.findAndLockById(bookingId).orElse(null);
@@ -367,8 +368,8 @@ public class BookingService {
             logger.error("Transaction timed out during booking deletion for booking ID: {}", bookingId, ex);
             return ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT).body("The request timed out. Please try again later.");
         } catch (Exception e) {
-            logger.error("Unexpected error canceling booking with ID: {}", bookingId, e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred while canceling the booking.");
+            logger.error("Unexpected error deleting booking with ID: {}", bookingId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred while deleting the booking.");
         }
     }
 
