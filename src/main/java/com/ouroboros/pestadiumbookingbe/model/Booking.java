@@ -59,10 +59,6 @@ public class Booking {
     @Column(name = "updated_at", columnDefinition = "timestamp with time zone")
     private OffsetDateTime updatedAt = OffsetDateTime.now();
 
-    @Version
-    @Column(name = "version")
-    private Integer version;
-
     // Getters and setters
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
@@ -108,7 +104,4 @@ public class Booking {
 
     public OffsetDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(OffsetDateTime updatedAt) { this.updatedAt = updatedAt; }
-
-    public Integer getVersion() { return version; }
-    public void setVersion(Integer version) { this.version = version; }
 }
