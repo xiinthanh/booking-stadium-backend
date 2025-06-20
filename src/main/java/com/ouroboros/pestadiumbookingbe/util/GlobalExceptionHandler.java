@@ -11,6 +11,7 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @Hidden
 @ControllerAdvice
@@ -34,12 +35,20 @@ public class GlobalExceptionHandler {
                 .body("Invalid input format. Please check your request and try again.");
     }
 
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<String> handleNoResourceFound(NoResourceFoundException ex) {
+        logger.warn("Resource not found: {}", ex.getMessage());
+        return ResponseEntity.notFound().build();
+    }
+
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<String> handleMissingServletRequestParameterException(MissingServletRequestParameterException ex) {
         logger.error("Missing request parameter: {}", ex.getParameterName(), ex);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body("Required request parameter '" + ex.getParameterName() + "' is missing.");
     }
+
+
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<String> handleGenericException(Exception ex) {
