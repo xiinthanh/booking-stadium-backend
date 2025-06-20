@@ -64,4 +64,5 @@ jobs:
               -e MAILGUN_API_KEY="${{ secrets.MAILGUN_API_KEY }}" \
               -e MAILGUN_DOMAIN="${{ secrets.MAILGUN_DOMAIN }}" \
               -e MAILGUN_FROM_EMAIL="${{ secrets.MAILGUN_FROM_EMAIL }}" \
+              -e SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET} \
               ${{ secrets.DOCKERHUB_USERNAME }}/pe-stadiumbookingbe
