@@ -29,7 +29,7 @@ public class BookingModificationHandler implements BookingNotificationHandler {
             BookingSummary bookingSummary = bookingMapper.toBookingSummary(booking);
 
             String subject = "Booking Modification";
-            String text = String.format("Your booking for %s on %s from %s to %s has been modified.",
+            String text = String.format("Your booking has been modified to %s on %s from %s to %s.",
                     bookingSummary.getSportHallName(),
                     bookingSummary.getBookingDate(),
                     bookingSummary.getStartTime(),
