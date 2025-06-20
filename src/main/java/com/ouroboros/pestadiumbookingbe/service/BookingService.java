@@ -294,7 +294,11 @@ public class BookingService {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Quota exceeded for the user on the new date.");
             }
 
-            if (isOccupiedBooking(sportHallId, date, timeSlotId)) {
+            // is occupied by another booking (not itself)
+            if (isOccupiedBooking(sportHallId, date, timeSlotId) && (
+                    booking.getSportHallId() != sportHallId ||
+                    booking.getTimeSlotId() != timeSlotId ||
+                    !booking.getBookingDate().equals(date))) {
                 return ResponseEntity.badRequest().body("A booking already exists for the given combination.");
             }
 
