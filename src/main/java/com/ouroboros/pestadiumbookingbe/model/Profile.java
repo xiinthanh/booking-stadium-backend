@@ -34,6 +34,17 @@ public class Profile {
     @Column(name = "updated_at")
     private Instant updatedAt;
 
+    @Column(name = "deleted")
+    private Boolean deleted;
+
+    public Boolean getDeleted() {
+        return deleted;
+    }
+
+    public void setDeleted(Boolean deleted) {
+        this.deleted = deleted;
+    }
+
     @PrePersist
     protected void onCreate() {
         createdAt = Instant.now();

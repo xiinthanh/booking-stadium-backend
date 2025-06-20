@@ -29,4 +29,8 @@ public class ProfilesController {
     public ResponseEntity<?> updateProfile(Profile profile) {
         return profileService.updateProfile(profile);
     }
+    @PostMapping("/delete-profile")
+    public ResponseEntity<?> deleteProfile(@RequestParam UUID id) {
+        return profileService.deleteProfile(id);
+    }
 }

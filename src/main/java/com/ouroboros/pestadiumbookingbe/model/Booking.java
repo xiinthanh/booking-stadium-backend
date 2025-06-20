@@ -60,6 +60,7 @@ public class Booking {
     private OffsetDateTime updatedAt = OffsetDateTime.now();
 
     @Version
+    @Column(name = "version")
     private Integer version;
 
     // Getters and setters
