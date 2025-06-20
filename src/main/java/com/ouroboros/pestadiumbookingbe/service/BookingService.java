@@ -235,6 +235,15 @@ public class BookingService {
             }
 
             // Update booking details
+            booking.setSportHallId(sportHallId);
+            booking.setSportId(sportId);
+            booking.setUserId(userId);
+            booking.setBookingDate(date);
+            booking.setTimeSlotId(timeSlotId);
+            booking.setPurpose(purpose);
+            booking.setUpdatedAt(OffsetDateTime.now());
+            booking.setCanceledAt(null);  // Clear cancellation details
+            booking.setCanceledBy(null);  // Clear cancellation details
             booking.setStatus(Status.pending);  // Reset status to pending, waiting for confirmation from admin
             bookingRepository.save(booking);
 
