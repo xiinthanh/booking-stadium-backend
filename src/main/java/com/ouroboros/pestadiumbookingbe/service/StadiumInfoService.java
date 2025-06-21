@@ -38,6 +38,8 @@ public class StadiumInfoService {
         } catch (org.springframework.dao.DataAccessException ex) {
             logger.error("Database error fetching sport halls", ex);
             throw new ServiceUnavailableException("Database error fetching sport halls", ex);
+        } catch (ServiceUnavailableException e) {
+            throw e;
         } catch (Exception e) {
             logger.error("Error fetching sport halls", e);
             throw new ServiceUnavailableException("Error fetching sport halls", e);
@@ -56,6 +58,8 @@ public class StadiumInfoService {
         } catch (org.springframework.dao.DataAccessException ex) {
             logger.error("Database error fetching sports", ex);
             throw new ServiceUnavailableException("Database error fetching sports", ex);
+        } catch (ServiceUnavailableException e) {
+            throw e;
         } catch (Exception e) {
             logger.error("Error fetching sports", e);
             throw new ServiceUnavailableException("Error fetching sports", e);
@@ -74,6 +78,8 @@ public class StadiumInfoService {
         } catch (org.springframework.dao.DataAccessException ex) {
             logger.error("Database error fetching time slots", ex);
             throw new ServiceUnavailableException("Database error fetching time slots", ex);
+        } catch (ServiceUnavailableException e) {
+            throw e;
         } catch (Exception e) {
             logger.error("Error fetching time slots", e);
             throw new ServiceUnavailableException("Error fetching time slots", e);

@@ -35,6 +35,8 @@ public class SearchService {
         } catch (org.springframework.dao.DataAccessException ex) {
             logger.error("Database error fetching sport hall with ID: {}", id, ex);
             throw new ServiceUnavailableException("Service unavailable due to database issues");
+        } catch (BadRequestException e) {
+            throw e;
         } catch (Exception e) {
             logger.error("Error fetching sport hall with ID: {}", id, e);
             throw new RuntimeException("Unexpected error fetching sport hall");
@@ -50,6 +52,8 @@ public class SearchService {
         } catch (org.springframework.dao.DataAccessException ex) {
             logger.error("Database error fetching time slot with ID: {}", id, ex);
             throw new ServiceUnavailableException("Service unavailable due to database issues");
+        } catch (BadRequestException e) {
+            throw e;
         } catch (Exception e) {
             logger.error("Error fetching time slot with ID: {}", id, e);
             throw new RuntimeException("Unexpected error fetching time slot");

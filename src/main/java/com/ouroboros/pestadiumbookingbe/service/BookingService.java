@@ -138,13 +138,16 @@ public class BookingService {
             Booking savedBooking = bookingRepository.save(booking);
             logger.info("Booking created successfully for userId: {}, sportHallId: {}, sportId: {}, date: {}, timeSlotId: {}", userId, sportHallId, sportId, date, timeSlotId);
 
-            // Notify the user about the booking creation
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    notificationService.notifyOnBookingChange(savedBooking, BookingNotificationType.CREATION);
-                }
-            });
+            // Notify after transaction or immediately if no transaction active
+            if (TransactionSynchronizationManager.isSynchronizationActive()) {
+                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                    @Override public void afterCommit() {
+                        notificationService.notifyOnBookingChange(savedBooking, BookingNotificationType.CREATION);
+                    }
+                });
+            } else {
+                notificationService.notifyOnBookingChange(savedBooking, BookingNotificationType.CREATION);
+            }
 
             return savedBooking;
         } catch (org.springframework.dao.DataIntegrityViolationException ex) {
@@ -154,10 +157,12 @@ public class BookingService {
             logger.error("Database error during booking creation", ex);
             throw new ServiceUnavailableException("The service is temporarily unavailable due to database issues. Please try again later.");
         } catch (TransactionTimedOutException ex) {
-            logger.error("Transaction timed out during booking creation", ex);
-            throw new RequestTimeoutException("The request timed out. Please try again later.");
+             logger.error("Transaction timed out during booking creation", ex);
+             throw new RequestTimeoutException("The request timed out. Please try again later.");
+        } catch (BadRequestException | ForbiddenException e) {
+            throw e;
         } catch (Exception e) {
-            logger.error("Error occurred while creating booking: {}", e.getMessage(), e);
+             logger.error("Error occurred while creating booking: {}", e.getMessage(), e);
         }
         throw new RuntimeException("Failed to create booking due to unexpected errors.");
     }
@@ -188,35 +193,29 @@ public class BookingService {
             booking.setCanceledAt(null);
             booking.setCanceledBy(null);
             Booking savedBooking = bookingRepository.save(booking);
-
-            // Lock the booking to prevent concurrent modifications
-            // Make sure not overlapping with existing bookings
-//            if (isOccupiedBooking(booking.getSportHallId(), booking.getBookingDate(), booking.getTimeSlotId())) {
-//                return ResponseEntity.badRequest().body("A booking already exists for the given combination.");
-//            }
-            // Note: no need to check for overlapping bookings here as there is only 1 pending/confirmed
-            // booking can exist at a time for a sport hall, date, and time slot.
-
-            logger.info("Booking confirmed successfully with ID: {}", bookingId);
-
-            // Notify the user about the booking confirmation
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    notificationService.notifyOnBookingChange(savedBooking, BookingNotificationType.CONFIRMATION);
-                }
-            });
+            // Notify
+            if (TransactionSynchronizationManager.isSynchronizationActive()) {
+                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                    @Override public void afterCommit() {
+                        notificationService.notifyOnBookingChange(savedBooking, BookingNotificationType.CONFIRMATION);
+                    }
+                });
+            } else {
+                notificationService.notifyOnBookingChange(savedBooking, BookingNotificationType.CONFIRMATION);
+            }
 
             return savedBooking;
         } catch (org.springframework.dao.DataAccessException ex) {
             logger.error("Database error during booking confirmation for booking ID: {}", bookingId, ex);
             throw new ServiceUnavailableException("The service is temporarily unavailable due to database issues. Please try again later.");
         } catch (TransactionTimedOutException ex) {
-            logger.error("Transaction timed out during booking confirmation for booking ID: {}", bookingId, ex);
-            throw new RequestTimeoutException("The request timed out. Please try again later.");
+             logger.error("Transaction timed out during booking confirmation for booking ID: {}", bookingId, ex);
+             throw new RequestTimeoutException("The request timed out. Please try again later.");
+        } catch (BadRequestException | ForbiddenException e) {
+            throw e;
         } catch (Exception e) {
-            logger.error("Unexpected error confirming booking with ID: {}", bookingId, e);
-            throw new RuntimeException("An unexpected error occurred while confirming the booking.");
+             logger.error("Unexpected error confirming booking with ID: {}", bookingId, e);
+             throw new RuntimeException("An unexpected error occurred while confirming the booking.");
         }
     }
 
@@ -241,24 +240,30 @@ public class BookingService {
             booking.setCanceledBy(canceledBy);
             booking.setStatus(Status.rejected);
             Booking savedBooking = bookingRepository.save(booking);
-            // Notify the user about the booking cancellation
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    notificationService.notifyOnBookingChange(savedBooking, BookingNotificationType.CANCELLATION);
-                }
-            });
+            // Notify
+            if (TransactionSynchronizationManager.isSynchronizationActive()) {
+                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                    @Override public void afterCommit() {
+                        notificationService.notifyOnBookingChange(savedBooking, BookingNotificationType.CANCELLATION);
+                    }
+                });
+            } else {
+                notificationService.notifyOnBookingChange(savedBooking, BookingNotificationType.CANCELLATION);
+            }
+
             logger.info("Booking canceled successfully with ID: {}", bookingId);
             return savedBooking;
         } catch (org.springframework.dao.DataAccessException ex) {
             logger.error("Database error during booking cancellation for booking ID: {}", bookingId, ex);
             throw new ServiceUnavailableException("The service is temporarily unavailable due to database issues. Please try again later.");
         } catch (TransactionTimedOutException ex) {
-            logger.error("Transaction timed out during booking cancellation for booking ID: {}", bookingId, ex);
-            throw new RequestTimeoutException("The request timed out. Please try again later.");
+             logger.error("Transaction timed out during booking cancellation for booking ID: {}", bookingId, ex);
+             throw new RequestTimeoutException("The request timed out. Please try again later.");
+        } catch (BadRequestException | ForbiddenException e) {
+            throw e;
         } catch (Exception e) {
-            logger.error("Unexpected error canceling booking with ID: {}", bookingId, e);
-            throw new RuntimeException("An unexpected error occurred while canceling the booking.");
+             logger.error("Unexpected error canceling booking with ID: {}", bookingId, e);
+             throw new RuntimeException("An unexpected error occurred while canceling the booking.");
         }
     }
 
@@ -310,25 +315,29 @@ public class BookingService {
             booking.setCanceledBy(null);  // Clear cancellation details
             booking.setStatus(Status.pending);  // Reset status to pending, waiting for confirmation from admin
             Booking savedBooking = bookingRepository.save(booking);
-
-            // Notify the user about the booking modification
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    notificationService.notifyOnBookingChange(savedBooking, BookingNotificationType.MODIFICATION);
-                }
-            });
+            // Notify
+            if (TransactionSynchronizationManager.isSynchronizationActive()) {
+                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                    @Override public void afterCommit() {
+                        notificationService.notifyOnBookingChange(savedBooking, BookingNotificationType.MODIFICATION);
+                    }
+                });
+            } else {
+                notificationService.notifyOnBookingChange(savedBooking, BookingNotificationType.MODIFICATION);
+            }
 
             return savedBooking;
         } catch (org.springframework.dao.DataAccessException ex) {
             logger.error("Database error during booking modification", ex);
             throw new ServiceUnavailableException("The service is temporarily unavailable due to database issues. Please try again later.");
         } catch (TransactionTimedOutException ex) {
-            logger.error("Transaction timed out during booking modification for booking ID: {}", bookingId, ex);
-            throw new RequestTimeoutException("The request timed out. Please try again later.");
+             logger.error("Transaction timed out during booking modification for booking ID: {}", bookingId, ex);
+             throw new RequestTimeoutException("The request timed out. Please try again later.");
+        } catch (BadRequestException | ForbiddenException e) {
+            throw e;
         } catch (Exception e) {
-            logger.error("Error modifying booking with ID: {}", bookingId, e);
-            throw new RuntimeException("An error occurred while modifying the booking.");
+             logger.error("Error modifying booking with ID: {}", bookingId, e);
+             throw new RuntimeException("An error occurred while modifying the booking.");
         }
     }
 
@@ -348,25 +357,29 @@ public class BookingService {
             }
 
             bookingRepository.delete(booking);
-
-            // Notify the user about the booking deletion
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    notificationService.notifyOnBookingChange(booking, BookingNotificationType.DELETION);
-                }
-            });
+            // Notify
+            if (TransactionSynchronizationManager.isSynchronizationActive()) {
+                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                    @Override public void afterCommit() {
+                        notificationService.notifyOnBookingChange(booking, BookingNotificationType.DELETION);
+                    }
+                });
+            } else {
+                notificationService.notifyOnBookingChange(booking, BookingNotificationType.DELETION);
+            }
 
             logger.info("Booking deleted successfully with ID: {}", bookingId);
         } catch (org.springframework.dao.DataAccessException ex) {
             logger.error("Database error during booking deletion for booking ID: {}", bookingId, ex);
             throw new ServiceUnavailableException("The service is temporarily unavailable due to database issues. Please try again later.");
         } catch (TransactionTimedOutException ex) {
-            logger.error("Transaction timed out during booking deletion for booking ID: {}", bookingId, ex);
-            throw new RequestTimeoutException("The request timed out. Please try again later.");
+             logger.error("Transaction timed out during booking deletion for booking ID: {}", bookingId, ex);
+             throw new RequestTimeoutException("The request timed out. Please try again later.");
+        } catch (BadRequestException | ForbiddenException e) {
+            throw e;
         } catch (Exception e) {
-            logger.error("Unexpected error deleting booking with ID: {}", bookingId, e);
-            throw new RuntimeException("An unexpected error occurred while deleting the booking.");
+             logger.error("Unexpected error deleting booking with ID: {}", bookingId, e);
+             throw new RuntimeException("An unexpected error occurred while deleting the booking.");
         }
     }
 
@@ -396,6 +409,9 @@ public class BookingService {
         } catch (org.springframework.dao.DataAccessException ex) {
             logger.error("Database error fetching booking with ID: {}", id, ex);
             throw new ServiceUnavailableException("The service is temporarily unavailable due to database issues. Please try again later.");
+        } catch (BadRequestException e) {
+            // catch the exception thrown in the try block
+            throw e;
         } catch (Exception e) {
             logger.error("Error fetching booking with ID: {}", id, e);
             throw new RuntimeException("An error occurred while fetching the booking.");
@@ -414,6 +430,9 @@ public class BookingService {
         } catch (org.springframework.dao.DataAccessException ex) {
             logger.error("Database error fetching bookings for userId: {}", userId, ex);
             throw new ServiceUnavailableException("The service is temporarily unavailable due to database issues. Please try again later.");
+        } catch (BadRequestException e) {
+            // catch the exception thrown in the try block
+            throw e;
         } catch (Exception e) {
             logger.error("Error fetching bookings for userId: {}", userId, e);
             throw new RuntimeException("An error occurred while fetching bookings for the user.");
