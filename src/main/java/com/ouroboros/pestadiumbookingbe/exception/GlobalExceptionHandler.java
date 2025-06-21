@@ -43,13 +43,9 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred.");
     }
 
-
-    private static final Logger logger = LoggerFactory.getLogger(com.ouroboros.pestadiumbookingbe.util.GlobalExceptionHandler.class);
-
     @ExceptionHandler(DataAccessException.class)
     public ResponseEntity<String> handleDatabaseExceptions(DataAccessException ex) {
         // Log the error for debugging
-        logger.error("Database access error occurred: {}", ex.getMessage(), ex);
         // Return a user-friendly error message
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                 .body("The service is temporarily unavailable due to database issues. Please try again later.");
@@ -57,20 +53,17 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<String> handleIllegalArgumentException(IllegalArgumentException ex) {
-        logger.error("Invalid argument provided: {}", ex.getMessage(), ex);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body("Invalid input format. Please check your request and try again.");
     }
 
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<String> handleNoResourceFound(NoResourceFoundException ex) {
-        logger.warn("Resource not found: {}", ex.getMessage());
         return ResponseEntity.notFound().build();
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<String> handleMissingServletRequestParameterException(MissingServletRequestParameterException ex) {
-        logger.error("Missing request parameter: {}", ex.getParameterName(), ex);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body("Required request parameter '" + ex.getParameterName() + "' is missing.");
     }
