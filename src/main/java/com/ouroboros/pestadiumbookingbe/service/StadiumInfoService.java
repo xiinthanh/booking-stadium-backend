@@ -1,12 +1,15 @@
 package com.ouroboros.pestadiumbookingbe.service;
 
+import com.ouroboros.pestadiumbookingbe.exception.ServiceUnavailableException;
+import com.ouroboros.pestadiumbookingbe.model.SportHall;
+import com.ouroboros.pestadiumbookingbe.model.Sport;
+import com.ouroboros.pestadiumbookingbe.model.TimeSlot;
 import com.ouroboros.pestadiumbookingbe.repository.SportHallRepository;
 import com.ouroboros.pestadiumbookingbe.repository.SportRepository;
 import com.ouroboros.pestadiumbookingbe.repository.TimeSlotRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -23,57 +26,57 @@ public class StadiumInfoService {
 
     private static final Logger logger = LoggerFactory.getLogger(StadiumInfoService.class);
 
-    public ResponseEntity<?> getAllSportHalls() {
+    public List<SportHall> getAllSportHalls() {
         logger.info("getAllSportHalls");
         try {
-            List<?> sportHalls = sportHallRepository.findAll();
+            List<SportHall> sportHalls = sportHallRepository.findAll();
             if (sportHalls.isEmpty()) {
                 logger.warn("No sport halls found");
-                return ResponseEntity.status(404).body(List.of());
+                throw new ServiceUnavailableException("No sport halls found");
             }
-            return ResponseEntity.ok(sportHalls);
+            return sportHalls;
         } catch (org.springframework.dao.DataAccessException ex) {
             logger.error("Database error fetching sport halls", ex);
-            return ResponseEntity.status(503).body(List.of());
+            throw new ServiceUnavailableException("Database error fetching sport halls", ex);
         } catch (Exception e) {
             logger.error("Error fetching sport halls", e);
-            return ResponseEntity.status(500).body(List.of());
+            throw new ServiceUnavailableException("Error fetching sport halls", e);
         }
     }
 
-    public ResponseEntity<?> getAllSports() {
+    public List<Sport> getAllSports() {
         logger.info("Fetching all sports from the repository");
         try {
-            List<?> sports = sportRepository.findAll();
+            List<Sport> sports = sportRepository.findAll();
             if (sports.isEmpty()) {
                 logger.warn("No sports found");
-                return ResponseEntity.status(404).body(List.of());
+                throw new ServiceUnavailableException("No sports found");
             }
-            return ResponseEntity.ok(sports);
+            return sports;
         } catch (org.springframework.dao.DataAccessException ex) {
             logger.error("Database error fetching sports", ex);
-            return ResponseEntity.status(503).body(List.of());
+            throw new ServiceUnavailableException("Database error fetching sports", ex);
         } catch (Exception e) {
             logger.error("Error fetching sports", e);
-            return ResponseEntity.status(500).body(List.of());
+            throw new ServiceUnavailableException("Error fetching sports", e);
         }
     }
 
-    public ResponseEntity<?> getAllTimeSlots() {
+    public List<TimeSlot> getAllTimeSlots() {
         logger.info("Fetching all time slots");
         try {
-            List<?> timeSlots = timeSlotRepository.findAll();
+            List<TimeSlot> timeSlots = timeSlotRepository.findAll();
             if (timeSlots.isEmpty()) {
                 logger.warn("No time slots found");
-                return ResponseEntity.status(404).body(List.of());
+                throw new ServiceUnavailableException("No time slots found");
             }
-            return ResponseEntity.ok(timeSlots);
+            return timeSlots;
         } catch (org.springframework.dao.DataAccessException ex) {
             logger.error("Database error fetching time slots", ex);
-            return ResponseEntity.status(503).body(List.of());
+            throw new ServiceUnavailableException("Database error fetching time slots", ex);
         } catch (Exception e) {
             logger.error("Error fetching time slots", e);
-            return ResponseEntity.status(500).body(List.of());
+            throw new ServiceUnavailableException("Error fetching time slots", e);
         }
     }
 }

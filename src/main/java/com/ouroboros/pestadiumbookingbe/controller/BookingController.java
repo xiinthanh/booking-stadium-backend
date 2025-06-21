@@ -2,12 +2,14 @@ package com.ouroboros.pestadiumbookingbe.controller;
 
 import com.ouroboros.pestadiumbookingbe.dto.BookingRequest;
 import com.ouroboros.pestadiumbookingbe.service.BookingService;
+import com.ouroboros.pestadiumbookingbe.model.Booking;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -20,9 +22,8 @@ public class BookingController {
     private static final Logger logger = LoggerFactory.getLogger(BookingController.class);
 
     @PostMapping("/create-booking")
-    public ResponseEntity<?> createBooking(@RequestBody BookingRequest bookingRequest) {
-        // Delegate to the service layer
-        return bookingService.createBooking(
+    public ResponseEntity<Booking> createBooking(@RequestBody BookingRequest bookingRequest) {
+        Booking booking = bookingService.createBooking(
             bookingRequest.getUserId(),
             bookingRequest.getSportHallId(),
             bookingRequest.getSportId(),
@@ -30,21 +31,24 @@ public class BookingController {
             bookingRequest.getTimeSlotId(),
             bookingRequest.getPurpose()
         );
+        return ResponseEntity.ok(booking);
     }
 
     @PostMapping("/cancel-booking")
-    public ResponseEntity<?> cancelBooking(@RequestParam UUID bookingId, @RequestParam UUID canceledBy) {
-        return bookingService.cancelBooking(bookingId, canceledBy);
+    public ResponseEntity<Booking> cancelBooking(@RequestParam UUID bookingId, @RequestParam UUID canceledBy) {
+        Booking booking = bookingService.cancelBooking(bookingId, canceledBy);
+        return ResponseEntity.ok(booking);
     }
 
     @PostMapping("/confirm-booking")
-    public ResponseEntity<?> confirmBooking(@RequestParam UUID bookingId, @RequestParam UUID confirmedBy) {
-        return bookingService.confirmBooking(bookingId, confirmedBy);
+    public ResponseEntity<Booking> confirmBooking(@RequestParam UUID bookingId, @RequestParam UUID confirmedBy) {
+        Booking booking = bookingService.confirmBooking(bookingId, confirmedBy);
+        return ResponseEntity.ok(booking);
     }
 
     @PostMapping("/modify-booking")
-    public ResponseEntity<?> modifyBooking(@RequestParam UUID bookingId, @RequestParam UUID modifiedByUserId, @RequestBody BookingRequest bookingRequest) {
-        return bookingService.modifyBooking(
+    public ResponseEntity<Booking> modifyBooking(@RequestParam UUID bookingId, @RequestParam UUID modifiedByUserId, @RequestBody BookingRequest bookingRequest) {
+        Booking booking = bookingService.modifyBooking(
             bookingId,
             modifiedByUserId,
             bookingRequest.getUserId(),
@@ -54,32 +58,35 @@ public class BookingController {
             bookingRequest.getTimeSlotId(),
             bookingRequest.getPurpose()
         );
+        return ResponseEntity.ok(booking);
     }
 
     @PostMapping("/delete-booking")
-    public ResponseEntity<?> deleteBooking(@RequestParam UUID bookingId, @RequestParam UUID deletedBy) {
-        return bookingService.deleteBooking(bookingId, deletedBy);
+    public ResponseEntity<Void> deleteBooking(@RequestParam UUID bookingId, @RequestParam UUID deletedBy) {
+        bookingService.deleteBooking(bookingId, deletedBy);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/get-bookings")
-    public ResponseEntity<?> getAllBookings() {
-        return bookingService.getAllBookings();
+    public ResponseEntity<List<Booking>> getAllBookings() {
+        List<Booking> bookings = bookingService.getAllBookings();
+        return ResponseEntity.ok(bookings);
     }
 
     @GetMapping("/get-booking/{id}")
-    public ResponseEntity<?> getBookingById(@PathVariable UUID id) {
-        return bookingService.getBookingById(id);
+    public ResponseEntity<Booking> getBookingById(@PathVariable UUID id) {
+        Booking booking = bookingService.getBookingById(id);
+        return ResponseEntity.ok(booking);
     }
 
     @GetMapping("/get-bookings-by-user/{userId}")
-    public ResponseEntity<?> getBookingsByUserId(@PathVariable String userId) {
-        // Validate userId format if necessary
+    public ResponseEntity<List<Booking>> getBookingsByUserId(@PathVariable String userId) {
         try {
             UUID userIdUUID = UUID.fromString(userId);
-            return bookingService.getBookingsByUserId(userIdUUID);
+            List<Booking> bookings = bookingService.getBookingsByUserId(userIdUUID);
+            return ResponseEntity.ok(bookings);
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body("Invalid user ID format");
+            return ResponseEntity.badRequest().build();
         }
     }
 }
-

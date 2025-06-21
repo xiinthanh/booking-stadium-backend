@@ -1,5 +1,10 @@
 package com.ouroboros.pestadiumbookingbe.service;
 
+import com.ouroboros.pestadiumbookingbe.exception.BadRequestException;
+import com.ouroboros.pestadiumbookingbe.exception.ConflictException;
+import com.ouroboros.pestadiumbookingbe.exception.ForbiddenException;
+import com.ouroboros.pestadiumbookingbe.exception.RequestTimeoutException;
+import com.ouroboros.pestadiumbookingbe.exception.ServiceUnavailableException;
 import com.ouroboros.pestadiumbookingbe.model.Booking;
 import com.ouroboros.pestadiumbookingbe.model.Status;
 import com.ouroboros.pestadiumbookingbe.notifier.BookingNotificationType;
@@ -10,8 +15,6 @@ import com.ouroboros.pestadiumbookingbe.repository.TimeSlotRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.TransactionTimedOutException;
 import org.springframework.transaction.annotation.Transactional;
@@ -101,23 +104,23 @@ public class BookingService {
     }
 
     @Transactional(timeout = 2)  // 2 seconds timeout to prevent long-running transactions
-    public ResponseEntity<?> createBooking(UUID userId, UUID sportHallId, UUID sportId, LocalDate date, UUID timeSlotId, String purpose) {
+    public Booking createBooking(UUID userId, UUID sportHallId, UUID sportId, LocalDate date, UUID timeSlotId, String purpose) {
         logger.info("Creating booking for userId: {}, sportHallId: {}, sportId: {}, date: {}, timeSlotId: {}, purpose: {}", userId, sportHallId, sportId, date, timeSlotId, purpose);
         try {
             // Validate input parameters
             if (isInvalidUser(userId) || isInvalidSportHall(sportHallId) || isInvalidTimeSlot(timeSlotId) || isInvalidBookingDate(date) || purpose == null || purpose.isEmpty()) {
                 logger.error("Invalid input parameters: userId={}, sportHallId={}, sportId={}, date={}, timeSlotId={}, purpose={}", userId, sportHallId, sportId, date, timeSlotId, purpose);
-                return ResponseEntity.badRequest().body("Invalid input parameters.");
+                throw new BadRequestException("Invalid input parameters.");
             }
 
             // Check user's quota
             if (quotaExceeded(userId, date)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Quota exceeded for the user on the given date.");
+                throw new ForbiddenException("Quota exceeded for the user on the given date.");
             }
 
             // Make sure not overlapping with existing bookings
             if (isOccupiedBooking(sportHallId, date, timeSlotId)) {
-                return ResponseEntity.badRequest().body("A booking already exists for the given combination.");
+                throw new BadRequestException("A booking already exists for the given combination.");
             }
 
             // Create and save the new booking
@@ -143,41 +146,40 @@ public class BookingService {
                 }
             });
 
-            return ResponseEntity.ok(savedBooking);
+            return savedBooking;
         } catch (org.springframework.dao.DataIntegrityViolationException ex) {
             logger.error("Database constraint violation during booking creation", ex);
-            return ResponseEntity.status(HttpStatus.CONFLICT).body("A booking already exists for the given combination.");
+            throw new ConflictException("A booking already exists for the given combination.");
         } catch (org.springframework.dao.DataAccessException ex) {
             logger.error("Database error during booking creation", ex);
-            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                    .body("The service is temporarily unavailable due to database issues. Please try again later.");
+            throw new ServiceUnavailableException("The service is temporarily unavailable due to database issues. Please try again later.");
         } catch (TransactionTimedOutException ex) {
             logger.error("Transaction timed out during booking creation", ex);
-            return ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT).body("The request timed out. Please try again later.");
+            throw new RequestTimeoutException("The request timed out. Please try again later.");
         } catch (Exception e) {
             logger.error("Error occurred while creating booking: {}", e.getMessage(), e);
         }
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to create booking due to unexpected errors.");
+        throw new RuntimeException("Failed to create booking due to unexpected errors.");
     }
 
     // Ensure consistent usage of pessimistic locking in confirmBooking
     @Transactional(timeout = 2)  // 2 seconds timeout to prevent long-running transactions
-    public ResponseEntity<?> confirmBooking(UUID bookingId, UUID confirmedBy) {
+    public Booking confirmBooking(UUID bookingId, UUID confirmedBy) {
         logger.info("Confirming booking with ID: {} by user: {}", bookingId, confirmedBy);
         try {
             if (isInvalidUser(confirmedBy)) {
-                return ResponseEntity.badRequest().body("User profile not found.");
+                throw new BadRequestException("User profile not found.");
             }
 
             Booking booking = bookingRepository.findAndLockById(bookingId).orElse(null);
             if (booking == null) {
                 logger.error("Booking not found with ID: {}", bookingId);
-                return ResponseEntity.badRequest().body("Booking not found.");
+                throw new BadRequestException("Booking not found.");
             }
 
             if (booking.getStatus() != Status.pending) {
                 logger.error("Booking with ID: {} is not in pending status. Current status: {}", bookingId, booking.getStatus());
-                return ResponseEntity.badRequest().body("Only pending bookings can be confirmed.");
+                throw new BadRequestException("Only pending bookings can be confirmed.");
             }
 
             // Update booking status
@@ -205,46 +207,40 @@ public class BookingService {
                 }
             });
 
-            return ResponseEntity.ok(savedBooking);
+            return savedBooking;
         } catch (org.springframework.dao.DataAccessException ex) {
             logger.error("Database error during booking confirmation for booking ID: {}", bookingId, ex);
-            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                    .body("The service is temporarily unavailable due to database issues. Please try again later.");
+            throw new ServiceUnavailableException("The service is temporarily unavailable due to database issues. Please try again later.");
         } catch (TransactionTimedOutException ex) {
             logger.error("Transaction timed out during booking confirmation for booking ID: {}", bookingId, ex);
-            return ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT).body("The request timed out. Please try again later.");
+            throw new RequestTimeoutException("The request timed out. Please try again later.");
         } catch (Exception e) {
             logger.error("Unexpected error confirming booking with ID: {}", bookingId, e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred while confirming the booking.");
+            throw new RuntimeException("An unexpected error occurred while confirming the booking.");
         }
     }
 
     @Transactional(timeout = 2)  // 2 seconds timeout to prevent long-running transactions
-    public ResponseEntity<?> cancelBooking(UUID bookingId, UUID canceledBy) {
+    public Booking cancelBooking(UUID bookingId, UUID canceledBy) {
         logger.info("Canceling booking with ID: {} by user: {}", bookingId, canceledBy);
         try {
             // Lock the booking to prevent concurrent modifications
             Booking booking = bookingRepository.findAndLockById(bookingId).orElse(null);
             if (booking == null) {
                 logger.error("Booking not found with ID: {}", bookingId);
-                return ResponseEntity.status(404).body("Booking not found.");
+                throw new BadRequestException("Booking not found.");
             }
-
             if (isInvalidUser(canceledBy)) {
-                return ResponseEntity.badRequest().body("User profile not found.");
+                throw new BadRequestException("User profile not found.");
             }
-
             if (booking.getStatus() != Status.pending && booking.getStatus() != Status.confirmed) {
                 logger.error("Invalid booking status for cancellation: {}", booking.getStatus());
-                return ResponseEntity.badRequest().body("Only pending/confirmed bookings can be canceled.");
+                throw new BadRequestException("Only pending/confirmed bookings can be canceled.");
             }
-
             booking.setCanceledAt(OffsetDateTime.now());
             booking.setCanceledBy(canceledBy);
             booking.setStatus(Status.rejected);
-
             Booking savedBooking = bookingRepository.save(booking);
-
             // Notify the user about the booking cancellation
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
@@ -252,46 +248,44 @@ public class BookingService {
                     notificationService.notifyOnBookingChange(savedBooking, BookingNotificationType.CANCELLATION);
                 }
             });
-
             logger.info("Booking canceled successfully with ID: {}", bookingId);
-            return ResponseEntity.ok(savedBooking);
+            return savedBooking;
         } catch (org.springframework.dao.DataAccessException ex) {
             logger.error("Database error during booking cancellation for booking ID: {}", bookingId, ex);
-            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                    .body("The service is temporarily unavailable due to database issues. Please try again later.");
+            throw new ServiceUnavailableException("The service is temporarily unavailable due to database issues. Please try again later.");
         } catch (TransactionTimedOutException ex) {
             logger.error("Transaction timed out during booking cancellation for booking ID: {}", bookingId, ex);
-            return ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT).body("The request timed out. Please try again later.");
+            throw new RequestTimeoutException("The request timed out. Please try again later.");
         } catch (Exception e) {
             logger.error("Unexpected error canceling booking with ID: {}", bookingId, e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred while canceling the booking.");
+            throw new RuntimeException("An unexpected error occurred while canceling the booking.");
         }
     }
 
     @Transactional(timeout = 2)  // 2 seconds timeout to prevent long-running transactions
-    public ResponseEntity<?> modifyBooking(UUID bookingId, UUID modifiedByUserId, UUID userId, UUID sportHallId, UUID sportId, LocalDate date, UUID timeSlotId, String purpose) {
+    public Booking modifyBooking(UUID bookingId, UUID modifiedByUserId, UUID userId, UUID sportHallId, UUID sportId, LocalDate date, UUID timeSlotId, String purpose) {
         logger.info("Modifying booking with ID: {} for userId: {}, sportHallId: {}, sportId: {}, date: {}, timeSlotId: {}, purpose: {}", bookingId, userId, sportHallId, sportId, date, timeSlotId, purpose);
         try {
             if (bookingId == null || modifiedByUserId == null || isInvalidUser(userId) || isInvalidSportHall(sportHallId) || isInvalidTimeSlot(timeSlotId) || isInvalidBookingDate(date) || purpose == null || purpose.isEmpty()) {
                 logger.error("Invalid input parameters for booking modification: bookingId={}, modifiedByUserId={}, userId={}, sportHallId={}, sportId={}, date={}, timeSlotId={}, purpose={}", bookingId, modifiedByUserId, userId, sportHallId, sportId, date, timeSlotId, purpose);
-                return ResponseEntity.badRequest().body("Invalid input parameters.");
+                throw new BadRequestException("Invalid input parameters.");
             }
 
             // Lock the booking to prevent concurrent modifications
             Booking booking = bookingRepository.findAndLockById(bookingId).orElse(null);
             if (booking == null) {
                 logger.error("Booking not found with ID: {}", bookingId);
-                return ResponseEntity.badRequest().body("Booking not found.");
+                throw new BadRequestException("Booking not found.");
             }
 
             if (booking.getStatus() != Status.pending && booking.getStatus() != Status.confirmed) {
                 logger.error("Invalid booking status for modification: {}", booking.getStatus());
-                return ResponseEntity.badRequest().body("Only pending/confirmed bookings can be modified.");
+                throw new BadRequestException("Only pending/confirmed bookings can be modified.");
             }
 
             // Quota check: if the booking date is changed, check if the user exceeds their quota on the new date
             if (!booking.getBookingDate().equals(date) && quotaExceeded(userId, date)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Quota exceeded for the user on the new date.");
+                throw new ForbiddenException("Quota exceeded for the user on the new date.");
             }
 
             // is occupied by another booking (not itself)
@@ -300,7 +294,7 @@ public class BookingService {
                     !booking.getTimeSlotId().equals(timeSlotId)) {
                 // the (sportHallId, bookingDate, getTimeSlotId) value of the new version does not match the older version
                 if (isOccupiedBooking(sportHallId, date, timeSlotId)) {
-                    return ResponseEntity.badRequest().body("A booking already exists for the given combination.");
+                    throw new BadRequestException("A booking already exists for the given combination.");
                 }
             }
 
@@ -325,33 +319,32 @@ public class BookingService {
                 }
             });
 
-            return ResponseEntity.ok(savedBooking);
+            return savedBooking;
         } catch (org.springframework.dao.DataAccessException ex) {
             logger.error("Database error during booking modification", ex);
-            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                    .body("The service is temporarily unavailable due to database issues. Please try again later.");
+            throw new ServiceUnavailableException("The service is temporarily unavailable due to database issues. Please try again later.");
         } catch (TransactionTimedOutException ex) {
             logger.error("Transaction timed out during booking modification for booking ID: {}", bookingId, ex);
-            return ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT).body("The request timed out. Please try again later.");
+            throw new RequestTimeoutException("The request timed out. Please try again later.");
         } catch (Exception e) {
             logger.error("Error modifying booking with ID: {}", bookingId, e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred while modifying the booking.");
+            throw new RuntimeException("An error occurred while modifying the booking.");
         }
     }
 
     @Transactional(timeout = 2)  // Ensure transaction is active for database operations
-    public ResponseEntity<?> deleteBooking(UUID bookingId, UUID deletedBy) {
+    public void deleteBooking(UUID bookingId, UUID deletedBy) {
         logger.info("Deleting booking with ID: {} by user: {}", bookingId, deletedBy);
         try {
             // Lock the booking to prevent concurrent modifications
             Booking booking = bookingRepository.findAndLockById(bookingId).orElse(null);
             if (booking == null) {
                 logger.error("Booking not found with ID: {}", bookingId);
-                return ResponseEntity.status(404).body("Booking not found.");
+                throw new BadRequestException("Booking not found.");
             }
 
             if (isInvalidUser(deletedBy)) {
-                return ResponseEntity.badRequest().body("User profile not found.");
+                throw new BadRequestException("User profile not found.");
             }
 
             bookingRepository.delete(booking);
@@ -365,68 +358,65 @@ public class BookingService {
             });
 
             logger.info("Booking deleted successfully with ID: {}", bookingId);
-            return ResponseEntity.ok("Booking deleted successfully.");
         } catch (org.springframework.dao.DataAccessException ex) {
             logger.error("Database error during booking deletion for booking ID: {}", bookingId, ex);
-            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                    .body("The service is temporarily unavailable due to database issues. Please try again later.");
+            throw new ServiceUnavailableException("The service is temporarily unavailable due to database issues. Please try again later.");
         } catch (TransactionTimedOutException ex) {
             logger.error("Transaction timed out during booking deletion for booking ID: {}", bookingId, ex);
-            return ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT).body("The request timed out. Please try again later.");
+            throw new RequestTimeoutException("The request timed out. Please try again later.");
         } catch (Exception e) {
             logger.error("Unexpected error deleting booking with ID: {}", bookingId, e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred while deleting the booking.");
+            throw new RuntimeException("An unexpected error occurred while deleting the booking.");
         }
     }
 
-    public ResponseEntity<?> getAllBookings() {
+    public List<Booking> getAllBookings() {
         logger.info("Fetching all bookings");
         try {
-            return ResponseEntity.ok(bookingRepository.findAll());
+            return bookingRepository.findAll();
         } catch (org.springframework.dao.DataAccessException ex) {
             logger.error("Database error fetching all bookings", ex);
-            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(List.of());
+            throw new ServiceUnavailableException("The service is temporarily unavailable due to database issues. Please try again later.");
         } catch (Exception e) {
             logger.error("Error fetching all bookings: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(List.of());
+            throw new RuntimeException("An error occurred while fetching all bookings.");
         }
     }
 
-    public ResponseEntity<?> getBookingById(UUID id) {
+    public Booking getBookingById(UUID id) {
         logger.info("Fetching booking with bookingID: {}", id);
         try {
             Optional<Booking> booking = bookingRepository.findById(id);
             if (booking.isPresent()) {
-                return ResponseEntity.ok(booking.get());
+                return booking.get();
             } else {
                 logger.warn("No booking found for ID: {}", id);
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Booking id not found.");
+                throw new BadRequestException("Booking id not found.");
             }
         } catch (org.springframework.dao.DataAccessException ex) {
             logger.error("Database error fetching booking with ID: {}", id, ex);
-            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(null);
+            throw new ServiceUnavailableException("The service is temporarily unavailable due to database issues. Please try again later.");
         } catch (Exception e) {
             logger.error("Error fetching booking with ID: {}", id, e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+            throw new RuntimeException("An error occurred while fetching the booking.");
         }
     }
 
-    public ResponseEntity<?> getBookingsByUserId(UUID userId) {
+    public List<Booking> getBookingsByUserId(UUID userId) {
         logger.info("Fetching bookings for userId: {}", userId);
         try {
             if (isInvalidUser(userId)) {
                 logger.error("User profile not found for userId: {}", userId);
-                return ResponseEntity.badRequest().body("User profile not found.");
+                throw new BadRequestException("User profile not found.");
             }
 
-            List<Booking> bookings = bookingRepository.findByUserId(userId);
-            return ResponseEntity.ok(bookings);
+            return bookingRepository.findByUserId(userId);
         } catch (org.springframework.dao.DataAccessException ex) {
             logger.error("Database error fetching bookings for userId: {}", userId, ex);
-            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(List.of());
+            throw new ServiceUnavailableException("The service is temporarily unavailable due to database issues. Please try again later.");
         } catch (Exception e) {
             logger.error("Error fetching bookings for userId: {}", userId, e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(List.of());
+            throw new RuntimeException("An error occurred while fetching bookings for the user.");
         }
     }
 }

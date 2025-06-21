@@ -1,5 +1,6 @@
 package com.ouroboros.pestadiumbookingbe.controller;
 
+import com.ouroboros.pestadiumbookingbe.model.SportHall;
 import com.ouroboros.pestadiumbookingbe.service.SearchService;
 import com.ouroboros.pestadiumbookingbe.service.StadiumInfoService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,6 +10,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -21,12 +23,14 @@ public class SportHallController {
     private SearchService searchService;
 
     @GetMapping("/get-sport-halls")
-    public ResponseEntity<?> getAllSportHalls() {
-        return stadiumInfoService.getAllSportHalls();
+    public ResponseEntity<List<SportHall>> getAllSportHalls() {
+        List<SportHall> halls = stadiumInfoService.getAllSportHalls();
+        return ResponseEntity.ok(halls);
     }
 
     @GetMapping("/get-sport-hall/{id}")
-    public ResponseEntity<?> getSportHallById(@PathVariable UUID id) {
-        return searchService.getSportHallById(id);
+    public ResponseEntity<SportHall> getSportHallById(@PathVariable UUID id) {
+        SportHall hall = searchService.getSportHallById(id);
+        return ResponseEntity.ok(hall);
     }
 }
