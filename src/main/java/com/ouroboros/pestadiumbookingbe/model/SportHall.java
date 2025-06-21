@@ -120,4 +120,14 @@ public class SportHall {
     public void setSportId(UUID sportId) {
         this.sportId = sportId;
     }
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = Instant.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = Instant.now();
+    }
 }

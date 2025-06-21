@@ -44,6 +44,8 @@ public class ProfileService {
         } catch (org.springframework.dao.DataAccessException ex) {
             logger.error("Database error fetching profile with ID: {}", id, ex);
             throw new ServiceUnavailableException("Service unavailable due to database issues");
+        } catch (BadRequestException e) {
+            throw e;
         } catch (Exception e) {
             logger.error("Error fetching profile with ID: {}", id, e);
             throw new RuntimeException("Unexpected error fetching profile");
@@ -66,6 +68,8 @@ public class ProfileService {
         } catch (IllegalArgumentException ex) {
             logger.error("Invalid argument provided for profile update with ID: {}", profile.getId(), ex);
             throw new BadRequestException("Invalid profile data");
+        } catch (BadRequestException e) {
+            throw e;
         } catch (Exception e) {
             logger.error("Error updating profile with ID: {}", profile.getId(), e);
             throw new RuntimeException("Unexpected error updating profile");
@@ -90,6 +94,8 @@ public class ProfileService {
         } catch (IllegalArgumentException ex) {
             logger.error("Invalid argument provided for profile deletion with ID: {}", id, ex);
             throw new BadRequestException("Invalid profile ID");
+        } catch (BadRequestException e) {
+            throw e;
         } catch (Exception e) {
             logger.error("Error deleting profile with ID: {}", id, e);
             throw new RuntimeException("Unexpected error deleting profile");
