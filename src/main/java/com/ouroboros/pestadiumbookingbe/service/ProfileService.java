@@ -1,5 +1,8 @@
 package com.ouroboros.pestadiumbookingbe.service;
 
+import com.ouroboros.pestadiumbookingbe.exception.BadRequestException;
+import com.ouroboros.pestadiumbookingbe.exception.RequestTimeoutException;
+import com.ouroboros.pestadiumbookingbe.exception.ServiceUnavailableException;
 import com.ouroboros.pestadiumbookingbe.model.Profile;
 import com.ouroboros.pestadiumbookingbe.repository.ProfileRepository;
 import org.springframework.transaction.TransactionTimedOutException;
@@ -7,11 +10,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -22,96 +23,76 @@ public class ProfileService {
     @Autowired
     private ProfileRepository profileRepository;
 
-    public ResponseEntity<?> getAllProfiles() {
+    public List<Profile> getAllProfiles() {
         logger.info("Fetching all profiles");
         try {
-            List<Profile> profiles = profileRepository.findAll();
-            if (profiles.isEmpty()) {
-                logger.warn("No profiles found");
-                return ResponseEntity.status(404).body(List.of());
-            }
-            return ResponseEntity.ok(profiles);
+            return profileRepository.findAll();
         } catch (org.springframework.dao.DataAccessException ex) {
             logger.error("Database error fetching profiles", ex);
-            return ResponseEntity.status(503).body(List.of());
+            throw new ServiceUnavailableException("Service unavailable due to database issues");
         } catch (Exception e) {
             logger.error("Error fetching profiles", e);
-            return ResponseEntity.status(500).body(List.of());
+            throw new RuntimeException("Unexpected error fetching profiles");
         }
     }
 
-    public ResponseEntity<?> getProfileById(UUID id) {
+    public Profile getProfileById(UUID id) {
         logger.info("Fetching profile with ID: {}", id);
         try {
-            Optional<Profile> profile = profileRepository.findById(id);
-            if (profile.isPresent()) {
-                return ResponseEntity.ok(profile.get());
-            } else {
-                logger.warn("No profile found for ID: {}", id);
-                return ResponseEntity.status(404).body(null);
-            }
+            return profileRepository.findById(id)
+                    .orElseThrow(() -> new BadRequestException("Profile not found"));
         } catch (org.springframework.dao.DataAccessException ex) {
             logger.error("Database error fetching profile with ID: {}", id, ex);
-            return ResponseEntity.status(503).body(null);
+            throw new ServiceUnavailableException("Service unavailable due to database issues");
         } catch (Exception e) {
             logger.error("Error fetching profile with ID: {}", id, e);
-            return ResponseEntity.status(500).body(null);
+            throw new RuntimeException("Unexpected error fetching profile");
         }
     }
 
     @Transactional(timeout = 2)
-    public ResponseEntity<?> updateProfile(Profile profile) {
+    public Profile updateProfile(Profile profile) {
         logger.info("Updating profile with ID: {}", profile.getId());
         try {
-            Optional<Profile> existingProfile = profileRepository.findAndLockById(profile.getId());
-
-            if (existingProfile.isPresent()) {
-                return ResponseEntity.ok(profileRepository.save(profile));
-            } else {
-                logger.warn("No profile found for ID: {}", profile.getId());
-                return ResponseEntity.status(404).body(null);
-            }
+            profileRepository.findAndLockById(profile.getId())
+                    .orElseThrow(() -> new BadRequestException("Profile not found"));
+            return profileRepository.save(profile);
         } catch (org.springframework.dao.DataAccessException ex) {
             logger.error("Database error updating profile with ID: {}", profile.getId(), ex);
-            return ResponseEntity.status(503).body(null);
+            throw new ServiceUnavailableException("Service unavailable due to database issues");
         } catch (TransactionTimedOutException ex) {
             logger.error("Transaction timed out while updating profile with ID: {}", profile.getId(), ex);
-            return ResponseEntity.status(408).body(null);
+            throw new RequestTimeoutException("Request timed out while updating profile");
         } catch (IllegalArgumentException ex) {
             logger.error("Invalid argument provided for profile update with ID: {}", profile.getId(), ex);
-            return ResponseEntity.badRequest().body("Invalid profile data");
+            throw new BadRequestException("Invalid profile data");
         } catch (Exception e) {
             logger.error("Error updating profile with ID: {}", profile.getId(), e);
-            return ResponseEntity.status(500).body(null);
+            throw new RuntimeException("Unexpected error updating profile");
         }
     }
 
     @Transactional(timeout = 2)
-    public ResponseEntity<?> deleteProfile(UUID id) {
+    public void deleteProfile(UUID id) {
         logger.info("Deleting profile with ID: {}", id);
         try {
-            Optional<Profile> profile = profileRepository.findAndLockById(id);
-            if (profile.isPresent()) {
-                profile.get().setDeleted(true);
-                profileRepository.save(profile.get());
-                logger.info("Profile with ID: {} deleted successfully", id);
-                return ResponseEntity.ok("Profile deleted successfully");
-            } else {
-                logger.warn("No profile found for ID: {}", id);
-                return ResponseEntity.status(404).body("Profile not found");
-            }
+            Profile existing = profileRepository.findAndLockById(id)
+                    .orElseThrow(() -> new BadRequestException("Profile not found"));
+            existing.setDeleted(true);
+            profileRepository.save(existing);
+            logger.info("Profile with ID: {} deleted successfully", id);
         } catch (org.springframework.dao.DataAccessException ex) {
             logger.error("Database error deleting profile with ID: {}", id, ex);
-            return ResponseEntity.status(503).body("Service unavailable due to database issues");
+            throw new ServiceUnavailableException("Service unavailable due to database issues");
         } catch (TransactionTimedOutException ex) {
             logger.error("Transaction timed out while deleting profile with ID: {}", id, ex);
-            return ResponseEntity.status(408).body("Request timeout while deleting profile");
+            throw new RequestTimeoutException("Request timed out while deleting profile");
         } catch (IllegalArgumentException ex) {
             logger.error("Invalid argument provided for profile deletion with ID: {}", id, ex);
-            return ResponseEntity.badRequest().body("Invalid profile ID");
+            throw new BadRequestException("Invalid profile ID");
         } catch (Exception e) {
             logger.error("Error deleting profile with ID: {}", id, e);
-            return ResponseEntity.status(500).body("Internal server error");
+            throw new RuntimeException("Unexpected error deleting profile");
         }
     }
 }

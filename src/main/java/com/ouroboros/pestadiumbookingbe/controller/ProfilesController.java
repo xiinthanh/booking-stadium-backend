@@ -17,20 +17,24 @@ public class ProfilesController {
     private ProfileService profileService;
 
     @GetMapping("/get-profiles")
-    public ResponseEntity<?> getAllProfiles() {
-        return profileService.getAllProfiles();
+    public ResponseEntity<List<Profile>> getAllProfiles() {
+        List<Profile> profiles = profileService.getAllProfiles();
+        return ResponseEntity.ok(profiles);
     }
 
     @GetMapping("/get-profile/{id}")
-    public ResponseEntity<?> getProfileById(@PathVariable UUID id) {
-        return profileService.getProfileById(id);
+    public ResponseEntity<Profile> getProfileById(@PathVariable UUID id) {
+        Profile profile = profileService.getProfileById(id);
+        return ResponseEntity.ok(profile);
     }
     @PostMapping("/update-profile")
-    public ResponseEntity<?> updateProfile(Profile profile) {
-        return profileService.updateProfile(profile);
+    public ResponseEntity<Profile> updateProfile(@RequestBody Profile profile) {
+        Profile updated = profileService.updateProfile(profile);
+        return ResponseEntity.ok(updated);
     }
     @PostMapping("/delete-profile")
-    public ResponseEntity<?> deleteProfile(@RequestParam UUID id) {
-        return profileService.deleteProfile(id);
+    public ResponseEntity<Void> deleteProfile(@RequestParam UUID id) {
+        profileService.deleteProfile(id);
+        return ResponseEntity.noContent().build();
     }
 }
