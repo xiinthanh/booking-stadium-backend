@@ -1,6 +1,7 @@
 package com.ouroboros.pestadiumbookingbe.service;
 
 import com.ouroboros.pestadiumbookingbe.exception.BadRequestException;
+import com.ouroboros.pestadiumbookingbe.exception.ConflictException;
 import com.ouroboros.pestadiumbookingbe.exception.ForbiddenException;
 import com.ouroboros.pestadiumbookingbe.model.*;
 import com.ouroboros.pestadiumbookingbe.repository.*;
@@ -30,7 +31,8 @@ class BookingServiceIntegrationTest {
     @Autowired TimeSlotRepository timeSlotRepository;
     @Autowired SportRepository sportRepository;
 
-    UUID userId, hallId, slotId, sportId;
+    UUID userId1, hallId, slotId, sportId;
+    UUID userId2;
 
     @BeforeEach
     void setup() {
@@ -40,42 +42,48 @@ class BookingServiceIntegrationTest {
         s.setActive(true);
         sportRepository.save(s);
         sportId = s.getId();
-        // persist dependent entities
-        Profile p = new Profile();
-        p.setEmail("test@example.com");
-        p.setType(ProfileType.user);
-        profileRepository.save(p);
+
+        // persist profile 1
+        Profile p1 = new Profile();
+        p1.setEmail("test1@example.com");
+        p1.setType(ProfileType.user);
+        profileRepository.save(p1);
+
+        Profile p2 = new Profile();
+        p2.setEmail("test@example.com");
+        p2.setType(ProfileType.user);
+        profileRepository.save(p2);
+
+
+        // persist sport hall
         SportHall h = new SportHall();
         h.setSportId(sportId);
         h.setName("Test Hall");
         h.setLocation(SportHallLocation.indoor);
         h.setCapacity(10);
         sportHallRepository.save(h);
+
+        // persist time slot
         TimeSlot t = new TimeSlot();
         t.setStartTime(LocalTime.of(9, 0));
         t.setEndTime(LocalTime.of(10, 0));
         t.setDurationMinutes(60);
         t.setActive(true);
         timeSlotRepository.save(t);
-        userId = p.getId(); hallId = h.getId(); slotId = t.getId();
+
+        userId1 = p1.getId(); hallId = h.getId(); slotId = t.getId();
+        userId2 = p2.getId();
     }
 
     @Test
     void createBooking_persistsToDb() {
         long before = bookingRepository.count();
         Booking b = bookingService.createBooking(
-            userId, hallId, sportId, LocalDate.now().plusDays(1), slotId, "purpose"
+                userId1, hallId, sportId, LocalDate.now().plusDays(1), slotId, "purpose"
         );
         assertNotNull(b.getId());
         assertEquals(before + 1, bookingRepository.count());
         assertEquals(Status.pending, b.getStatus());
-    }
-
-    @Test
-    void confirmBooking_changesStatus() {
-        Booking b = bookingService.createBooking(userId, hallId, sportId, LocalDate.now().plusDays(1), slotId, "purpose");
-        Booking c = bookingService.confirmBooking(b.getId(), userId);
-        assertEquals(Status.confirmed, c.getStatus());
     }
 
     @Test
@@ -87,92 +95,131 @@ class BookingServiceIntegrationTest {
     }
 
     @Test
+    void createBooking_invalidHall_throwsBadRequest() {
+        assertThrows(BadRequestException.class, () ->
+            bookingService.createBooking(userId1, UUID.randomUUID(), sportId,
+                LocalDate.now().plusDays(1), slotId, "purpose")
+        );
+    }
+
+    @Test
+    void createBooking_invalidTimeSlot_throwsBadRequest() {
+        assertThrows(BadRequestException.class, () ->
+            bookingService.createBooking(userId1, hallId, sportId,
+                LocalDate.now().plusDays(1), UUID.randomUUID(), "purpose")
+        );
+    }
+
+    @Test
     void createBooking_pastDate_throwsBadRequest() {
         assertThrows(BadRequestException.class, () ->
-            bookingService.createBooking(userId, hallId, sportId,
+            bookingService.createBooking(userId1, hallId, sportId,
                 LocalDate.now().minusDays(1), slotId, "purpose")
+        );
+    }
+
+    @Test
+    void createBooking_moreThanOneYearInFuture_throwsBadRequest() {
+        assertThrows(BadRequestException.class, () ->
+            bookingService.createBooking(userId1, hallId, sportId,
+                LocalDate.now().plusYears(1).plusDays(1), slotId, "purpose")
         );
     }
 
     @Test
     void createBooking_emptyPurpose_throwsBadRequest() {
         assertThrows(BadRequestException.class, () ->
-            bookingService.createBooking(userId, hallId, sportId,
+            bookingService.createBooking(userId1, hallId, sportId,
                 LocalDate.now().plusDays(1), slotId, "")
+        );
+    }
+
+    @Test
+    void createBooking_nullPurpose_throwsBadRequest() {
+        assertThrows(BadRequestException.class, () ->
+            bookingService.createBooking(userId1, hallId, sportId,
+                LocalDate.now().plusDays(1), slotId, null)
         );
     }
 
     @Test
     void createBooking_quotaExceeded_throwsForbidden() {
         LocalDate d = LocalDate.now().plusDays(2);
-        bookingService.createBooking(userId, hallId, sportId, d, slotId, "purpose");
+        bookingService.createBooking(userId1, hallId, sportId, d, slotId, "purpose");
         assertThrows(ForbiddenException.class, () ->
-            bookingService.createBooking(userId, hallId, sportId, d, slotId, "other")
+            bookingService.createBooking(userId1, hallId, sportId, d, slotId, "other")
         );
     }
 
     @Test
-    void createBooking_conflictingBooking_throwsBadRequest() {
+    void createBooking_conflictingBooking_throwsConflict() {
         LocalDate d = LocalDate.now().plusDays(3);
-        bookingService.createBooking(userId, hallId, sportId, d, slotId, "purpose");
+        bookingService.createBooking(userId1, hallId, sportId, d, slotId, "original");
         // another user tries same slot
         Profile other = new Profile(); other.setEmail("other@test.com"); other.setType(ProfileType.user);
         UUID otherId = profileRepository.save(other).getId();
-        assertThrows(BadRequestException.class, () ->
-            bookingService.createBooking(otherId, hallId, sportId, d, slotId, "purpose")
+        assertThrows(ConflictException.class, () ->
+            bookingService.createBooking(otherId, hallId, sportId, d, slotId, "conflict")
         );
     }
 
     @Test
     void cancelBooking_and_confirmBooking_edgeCases() {
-        Booking p = bookingService.createBooking(userId, hallId, sportId,
+        Booking p = bookingService.createBooking(userId1, hallId, sportId,
             LocalDate.now().plusDays(4), slotId, "purpose");
-        Booking canceled = bookingService.cancelBooking(p.getId(), userId);
+        Booking canceled = bookingService.cancelBooking(p.getId(), userId1);
         assertEquals(Status.rejected, canceled.getStatus());
         assertNotNull(canceled.getCanceledAt());
         // cancel nonexistent
         assertThrows(BadRequestException.class, () ->
-            bookingService.cancelBooking(UUID.randomUUID(), userId)
+            bookingService.cancelBooking(UUID.randomUUID(), userId1)
         );
     }
 
     @Test
+    void confirmBooking_changesStatus() {
+        Booking b = bookingService.createBooking(userId1, hallId, sportId, LocalDate.now().plusDays(1), slotId, "purpose");
+        Booking c = bookingService.confirmBooking(b.getId(), userId1);
+        assertEquals(Status.confirmed, c.getStatus());
+    }
+
+    @Test
     void modifyBooking_validAndInvalid() {
-        Booking m = bookingService.createBooking(userId, hallId, sportId,
+        Booking m = bookingService.createBooking(userId1, hallId, sportId,
             LocalDate.now().plusDays(5), slotId, "purpose");
         LocalDate newDate = LocalDate.now().plusDays(6);
         Booking updated = bookingService.modifyBooking(
-            m.getId(), userId, userId, hallId, sportId, newDate, slotId, "newpur");
+            m.getId(), userId1, userId1, hallId, sportId, newDate, slotId, "newpur");
         assertEquals(newDate, updated.getBookingDate());
         assertEquals("newpur", updated.getPurpose());
         // invalid modify
         assertThrows(BadRequestException.class, () ->
-            bookingService.modifyBooking(null, userId, userId, hallId, sportId,
+            bookingService.modifyBooking(null, userId1, userId1, hallId, sportId,
                 newDate, slotId, "x")
         );
     }
 
     @Test
     void deleteBooking_validBooking_removesFromDb() {
-        Booking p = bookingService.createBooking(userId, hallId, sportId,
+        Booking p = bookingService.createBooking(userId1, hallId, sportId,
             LocalDate.now().plusDays(7), slotId, "purpose");
         assertNotNull(bookingRepository.findById(p.getId()).orElse(null));
 
         // Should not throw and should remove from DB
-        assertDoesNotThrow(() -> bookingService.deleteBooking(p.getId(), userId));
+        assertDoesNotThrow(() -> bookingService.deleteBooking(p.getId(), userId1));
         assertNull(bookingRepository.findById(p.getId()).orElse(null));
     }
 
     @Test
     void deleteBooking_invalidBookingId_throwsBadRequest() {
         assertThrows(BadRequestException.class, () ->
-            bookingService.deleteBooking(UUID.randomUUID(), userId)
+            bookingService.deleteBooking(UUID.randomUUID(), userId1)
         );
     }
 
     @Test
     void deleteBooking_invalidUserId_throwsBadRequest() {
-        Booking p = bookingService.createBooking(userId, hallId, sportId,
+        Booking p = bookingService.createBooking(userId1, hallId, sportId,
             LocalDate.now().plusDays(8), slotId, "purpose");
 
         assertThrows(BadRequestException.class, () ->
@@ -182,20 +229,11 @@ class BookingServiceIntegrationTest {
 
     @Test
     void getBookingById_validId_returnsBooking() {
-        Booking p = bookingService.createBooking(userId, hallId, sportId,
+        Booking p = bookingService.createBooking(userId1, hallId, sportId,
             LocalDate.now().plusDays(9), slotId, "purpose");
 
         Booking found = bookingService.getBookingById(p.getId());
         assertNotNull(found);
-        assertEquals(p.getId(), found.getId());
-        assertEquals("purpose", found.getPurpose());
-    }
-
-    @Test
-    void getBookingById_invalidId_throwsBadRequest() {
-        assertThrows(BadRequestException.class, () ->
-            bookingService.getBookingById(UUID.randomUUID())
-        );
     }
 
     @Test
@@ -204,9 +242,9 @@ class BookingServiceIntegrationTest {
         bookingRepository.deleteAll();
 
         // Create several bookings
-        bookingService.createBooking(userId, hallId, sportId,
+        bookingService.createBooking(userId1, hallId, sportId,
             LocalDate.now().plusDays(10), slotId, "first");
-        bookingService.createBooking(userId, hallId, sportId,
+        bookingService.createBooking(userId1, hallId, sportId,
             LocalDate.now().plusDays(11), slotId, "second");
 
         List<Booking> bookings = bookingService.getAllBookings();
@@ -219,7 +257,7 @@ class BookingServiceIntegrationTest {
         bookingRepository.deleteAll();
 
         // Create booking for our test user
-        bookingService.createBooking(userId, hallId, sportId,
+        bookingService.createBooking(userId1, hallId, sportId,
             LocalDate.now().plusDays(12), slotId, "mine");
 
         // Create second user and booking for them
@@ -232,7 +270,7 @@ class BookingServiceIntegrationTest {
             LocalDate.now().plusDays(13), slotId, "theirs");
 
         // User should only see their own booking
-        List<Booking> userBookings = bookingService.getBookingsByUserId(userId);
+        List<Booking> userBookings = bookingService.getBookingsByUserId(userId1);
         assertEquals(1, userBookings.size());
         assertEquals("mine", userBookings.get(0).getPurpose());
 

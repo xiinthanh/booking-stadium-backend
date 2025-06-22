@@ -52,7 +52,7 @@ public class BookingService {
         return false;
     }
 
-    private boolean isInvalidSportHall(UUID sportHallId) {
+    boolean isInvalidSportHall(UUID sportHallId) {
         if (sportHallRepository.findById(sportHallId).isEmpty()) {
             logger.warn("Sport hall ID not found for sportHallId: {}", sportHallId);
             return true;
@@ -60,7 +60,7 @@ public class BookingService {
         return false;
     }
 
-    private boolean isInvalidTimeSlot(UUID timeSlotId) {
+    boolean isInvalidTimeSlot(UUID timeSlotId) {
         if (timeSlotRepository.findById(timeSlotId).isEmpty()) {
             logger.warn("Time slot ID not found for timeSlotId: {}", timeSlotId);
             return true;
@@ -68,7 +68,7 @@ public class BookingService {
         return false;
     }
 
-    private boolean isInvalidBookingDate(LocalDate date) {
+    boolean isInvalidBookingDate(LocalDate date) {
         if (date.isBefore(LocalDate.now())) {
             logger.warn("Booking date cannot be in the past: {}", date);
             return true;
@@ -120,7 +120,7 @@ public class BookingService {
 
             // Make sure not overlapping with existing bookings
             if (isOccupiedBooking(sportHallId, date, timeSlotId)) {
-                throw new BadRequestException("A booking already exists for the given combination.");
+                throw new ConflictException("A booking already exists for the given combination.");
             }
 
             // Create and save the new booking
@@ -159,7 +159,7 @@ public class BookingService {
         } catch (TransactionTimedOutException ex) {
              logger.error("Transaction timed out during booking creation", ex);
              throw new RequestTimeoutException("The request timed out. Please try again later.");
-        } catch (BadRequestException | ForbiddenException e) {
+        } catch (BadRequestException | ForbiddenException | ConflictException e) {
             throw e;
         } catch (Exception e) {
              logger.error("Error occurred while creating booking: {}", e.getMessage(), e);
