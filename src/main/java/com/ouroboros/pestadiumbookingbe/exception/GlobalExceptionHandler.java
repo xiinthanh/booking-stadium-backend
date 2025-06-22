@@ -1,5 +1,6 @@
 package com.ouroboros.pestadiumbookingbe.exception;
 
+import io.swagger.v3.oas.annotations.Hidden;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
+@Hidden
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -38,11 +40,6 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(ex.getMessage());
     }
 
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<String> handleGeneric(Exception ex) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred.");
-    }
-
     @ExceptionHandler(DataAccessException.class)
     public ResponseEntity<String> handleDatabaseExceptions(DataAccessException ex) {
         // Log the error for debugging
@@ -66,5 +63,10 @@ public class GlobalExceptionHandler {
     public ResponseEntity<String> handleMissingServletRequestParameterException(MissingServletRequestParameterException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body("Required request parameter '" + ex.getParameterName() + "' is missing.");
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<String> handleGeneric(Exception ex) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred.");
     }
 }
