@@ -15,6 +15,8 @@ import com.ouroboros.pestadiumbookingbe.repository.TimeSlotRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.TransactionTimedOutException;
 import org.springframework.transaction.annotation.Transactional;
@@ -135,7 +137,7 @@ public class BookingService {
             booking.setCreatedAt(OffsetDateTime.now());
             booking.setUpdatedAt(OffsetDateTime.now());
 
-            Booking savedBooking = bookingRepository.save(booking);
+            Booking savedBooking = bookingRepository.saveAndFlush(booking);
             logger.info("Booking created successfully for userId: {}, sportHallId: {}, sportId: {}, date: {}, timeSlotId: {}", userId, sportHallId, sportId, date, timeSlotId);
 
             // Notify after transaction or immediately if no transaction active
@@ -150,10 +152,10 @@ public class BookingService {
             }
 
             return savedBooking;
-        } catch (org.springframework.dao.DataIntegrityViolationException ex) {
+        } catch (DataIntegrityViolationException ex) {
             logger.error("Database constraint violation during booking creation", ex);
             throw new ConflictException("A booking already exists for the given combination.");
-        } catch (org.springframework.dao.DataAccessException ex) {
+        } catch (DataAccessResourceFailureException ex) {
             logger.error("Database error during booking creation", ex);
             throw new ServiceUnavailableException("The service is temporarily unavailable due to database issues. Please try again later.");
         } catch (TransactionTimedOutException ex) {

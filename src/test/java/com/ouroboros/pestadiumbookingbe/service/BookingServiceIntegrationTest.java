@@ -3,6 +3,7 @@ package com.ouroboros.pestadiumbookingbe.service;
 import com.ouroboros.pestadiumbookingbe.exception.BadRequestException;
 import com.ouroboros.pestadiumbookingbe.exception.ConflictException;
 import com.ouroboros.pestadiumbookingbe.exception.ForbiddenException;
+import com.ouroboros.pestadiumbookingbe.exception.ServiceUnavailableException;
 import com.ouroboros.pestadiumbookingbe.model.*;
 import com.ouroboros.pestadiumbookingbe.repository.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -10,6 +11,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -18,6 +22,8 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 @SpringBootTest
 @AutoConfigureTestDatabase
@@ -160,6 +166,17 @@ class BookingServiceIntegrationTest {
         UUID otherId = profileRepository.save(other).getId();
         assertThrows(ConflictException.class, () ->
             bookingService.createBooking(otherId, hallId, sportId, d, slotId, "conflict")
+        );
+    }
+
+    @Test
+    void createBooking_dataIntegrityViolationException_throwsConflict() {
+        LocalDate d = LocalDate.now().plusDays(3);
+        Booking savedBooking = bookingService.createBooking(userId1, hallId, sportId, d, slotId, "original");
+        bookingService.cancelBooking(savedBooking.getId(), userId1);
+
+        assertThrows(ConflictException.class, () ->
+            bookingService.createBooking(userId2, hallId, sportId, d, slotId, "other purpose")
         );
     }
 
