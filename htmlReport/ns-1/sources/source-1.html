@@ -53,10 +53,10 @@ Current scope:     <a href="../../index.html">all classes</a>
 </td>
 <td class="coverageStat">
   <span class="percent">
-    95.1%
+    95.2%
   </span>
   <span class="absValue">
-    (97/102)
+    (99/104)
   </span>
 </td>
 <td class="coverageStat">
@@ -64,7 +64,7 @@ Current scope:     <a href="../../index.html">all classes</a>
     97.5%
   </span>
   <span class="absValue">
-    (193/198)
+    (195/200)
   </span>
 </td>
 </tr>
@@ -178,10 +178,10 @@ Current scope:     <a href="../../index.html">all classes</a>
 </td>
 <td class="coverageStat">
   <span class="percent">
-    95.1%
+    95.2%
   </span>
   <span class="absValue">
-    (97/102)
+    (99/104)
   </span>
 </td>
 <td class="coverageStat">
@@ -189,7 +189,7 @@ Current scope:     <a href="../../index.html">all classes</a>
     95.2%
   </span>
   <span class="absValue">
-    (198/208)
+    (200/210)
   </span>
 </td>
 </tr>
@@ -208,6 +208,7 @@ Current scope:     <a href="../../index.html">all classes</a>
 &nbsp;import com.ouroboros.pestadiumbookingbe.exception.RequestTimeoutException;
 &nbsp;import com.ouroboros.pestadiumbookingbe.exception.ServiceUnavailableException;
 &nbsp;import com.ouroboros.pestadiumbookingbe.model.Booking;
+&nbsp;import com.ouroboros.pestadiumbookingbe.model.ProfileType;
 &nbsp;import com.ouroboros.pestadiumbookingbe.model.Status;
 &nbsp;import com.ouroboros.pestadiumbookingbe.notifier.BookingNotificationType;
 &nbsp;import com.ouroboros.pestadiumbookingbe.repository.BookingRepository;
@@ -286,9 +287,14 @@ Current scope:     <a href="../../index.html">all classes</a>
 &nbsp;    }
 &nbsp;
 &nbsp;    boolean quotaExceeded(UUID userId, LocalDate date) {
+<b class="fc">&nbsp;        if (profileRepository.findById(userId).get().getType().equals(ProfileType.admin)) {</b>
+<b class="fc">&nbsp;            return false;  // admin can have infinite amount of book</b>
+&nbsp;        }
+&nbsp;
 &nbsp;        // Rule: A user can only have 1 booking/day
 <b class="fc">&nbsp;        long count = bookingRepository.countAndLockByUserIdAndBookingDateAndStatus(userId, date, Status.confirmed)</b>
 <b class="fc">&nbsp;                + bookingRepository.countAndLockByUserIdAndBookingDateAndStatus(userId, date, Status.pending);</b>
+&nbsp;
 <b class="fc">&nbsp;        if (count &gt;= 1) {</b>
 <b class="fc">&nbsp;            logger.warn(&quot;Quota exceeded for userId: {} on date: {}&quot;, userId, date);</b>
 <b class="fc">&nbsp;            return true;</b>
@@ -667,7 +673,7 @@ Current scope:     <a href="../../index.html">all classes</a>
 
 <div class="footer">
     
-    <div style="float:right;">generated on 2025-06-23 14:39</div>
+    <div style="float:right;">generated on 2025-06-23 18:59</div>
 </div>
 </body>
 </html>

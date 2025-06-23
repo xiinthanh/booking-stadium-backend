@@ -37,6 +37,7 @@ class BookingServiceIntegrationTest {
     UUID userId, hallId, slotId, sportId;
     UUID otherUserId, otherHallId, otherSlotId, otherSportId;
     LocalDate date, otherDate;
+    UUID adminId;
 
     @BeforeEach
     void setup() {
@@ -65,6 +66,12 @@ class BookingServiceIntegrationTest {
         otherP.setType(ProfileType.user);
         profileRepository.save(otherP);
         otherUserId = otherP.getId();
+
+        Profile admin = new Profile();
+        admin.setEmail("admin@example.com");
+        admin.setType(ProfileType.admin);
+        profileRepository.save(admin);
+        adminId = admin.getId();
 
         // persist sport hall
         SportHall h = new SportHall();
@@ -188,6 +195,14 @@ class BookingServiceIntegrationTest {
 
         assertThrows(ForbiddenException.class, () ->
             bookingService.createBooking(userId, hallId, sportId, date, slotId, "other")
+        );
+    }
+
+    @Test
+    void createBooking_adminUnlimitedQuota() {
+        bookingService.createBooking(adminId, hallId, sportId, date, slotId, "admin purpose");
+        assertDoesNotThrow(() ->
+                bookingService.createBooking(adminId, otherHallId, otherSportId, date, otherSlotId, "admin other purpose")
         );
     }
 
