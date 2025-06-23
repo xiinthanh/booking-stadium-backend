@@ -207,9 +207,9 @@ class BookingServiceIntegrationTest {
         bookingService.confirmBooking(b.getId(), userId); // confirm the original booking
 
         // another user tries same slot
-        assertThrows(ConflictException.class, () -> {
-            bookingService.createBooking(otherUserId, hallId, sportId, date, slotId, "conflict");
-        });
+        assertThrows(ConflictException.class, () ->
+            bookingService.createBooking(otherUserId, hallId, sportId, date, slotId, "conflict")
+        );
     }
 
     @Test
@@ -245,9 +245,18 @@ class BookingServiceIntegrationTest {
     }
 
     @Test
-    void confirmBooking_confirmedStatus() {
+    void confirmBooking_pendingBooking() {
         Booking b = bookingService.createBooking(userId, hallId, sportId, date, slotId, "purpose");
         Booking c = bookingService.confirmBooking(b.getId(), userId);
+        assertEquals(Status.confirmed, c.getStatus());
+    }
+    @Test
+    void confirmBooking_canceledBooking() {
+        Booking b = bookingService.createBooking(userId, hallId, sportId, date, slotId, "purpose");
+        bookingService.cancelBooking(b.getId(), userId); // cancel first
+
+        Booking c = bookingService.confirmBooking(b.getId(), userId);
+
         assertEquals(Status.confirmed, c.getStatus());
     }
 
@@ -273,16 +282,6 @@ class BookingServiceIntegrationTest {
 
         assertThrows(BadRequestException.class, () ->
             bookingService.confirmBooking(b.getId(), userId) // try to confirm again
-        );
-    }
-
-    @Test
-    void confirmBooking_alreadyCanceled_throwsBadRequest() {
-        Booking b = bookingService.createBooking(userId, hallId, sportId, date, slotId, "purpose");
-        bookingService.cancelBooking(b.getId(), userId); // cancel first
-
-        assertThrows(BadRequestException.class, () ->
-            bookingService.confirmBooking(b.getId(), userId) // try to confirm after cancel
         );
     }
 

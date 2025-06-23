@@ -182,9 +182,9 @@ public class BookingService {
                 throw new BadRequestException("Booking not found.");
             }
 
-            if (booking.getStatus() != Status.pending) {
-                logger.error("Booking with ID: {} is not in pending status. Current status: {}", bookingId, booking.getStatus());
-                throw new BadRequestException("Only pending bookings can be confirmed.");
+            if (booking.getStatus() != Status.pending && booking.getStatus() != Status.rejected) {
+                logger.error("Booking with ID: {} is not in pending/rejected status. Current status: {}", bookingId, booking.getStatus());
+                throw new BadRequestException("Only pending/rejected bookings can be confirmed.");
             }
 
             // Update booking status
