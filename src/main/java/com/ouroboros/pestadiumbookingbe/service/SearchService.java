@@ -9,6 +9,7 @@ import com.ouroboros.pestadiumbookingbe.repository.SportHallRepository;
 import com.ouroboros.pestadiumbookingbe.repository.SportRepository;
 import com.ouroboros.pestadiumbookingbe.repository.TimeSlotRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -32,7 +33,7 @@ public class SearchService {
             Optional<SportHall> foundSportHall = sportHallRepository.findById(id);
             return foundSportHall
                     .orElseThrow(() -> new BadRequestException("Sport hall not found"));
-        } catch (org.springframework.dao.DataAccessException ex) {
+        } catch (DataAccessResourceFailureException ex) {
             logger.error("Database error fetching sport hall with ID: {}", id, ex);
             throw new ServiceUnavailableException("Service unavailable due to database issues");
         } catch (BadRequestException e) {
@@ -49,7 +50,7 @@ public class SearchService {
             Optional<TimeSlot> foundTimeSlot = timeSlotRepository.findById(id);
             return foundTimeSlot
                     .orElseThrow(() -> new BadRequestException("Time slot not found"));
-        } catch (org.springframework.dao.DataAccessException ex) {
+        } catch (DataAccessResourceFailureException ex) {
             logger.error("Database error fetching time slot with ID: {}", id, ex);
             throw new ServiceUnavailableException("Service unavailable due to database issues");
         } catch (BadRequestException e) {
