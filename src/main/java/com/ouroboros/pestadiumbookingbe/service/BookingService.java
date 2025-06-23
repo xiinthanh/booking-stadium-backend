@@ -6,6 +6,7 @@ import com.ouroboros.pestadiumbookingbe.exception.ForbiddenException;
 import com.ouroboros.pestadiumbookingbe.exception.RequestTimeoutException;
 import com.ouroboros.pestadiumbookingbe.exception.ServiceUnavailableException;
 import com.ouroboros.pestadiumbookingbe.model.Booking;
+import com.ouroboros.pestadiumbookingbe.model.ProfileType;
 import com.ouroboros.pestadiumbookingbe.model.Status;
 import com.ouroboros.pestadiumbookingbe.notifier.BookingNotificationType;
 import com.ouroboros.pestadiumbookingbe.repository.BookingRepository;
@@ -84,9 +85,14 @@ public class BookingService {
     }
 
     boolean quotaExceeded(UUID userId, LocalDate date) {
+        if (profileRepository.findById(userId).get().getType().equals(ProfileType.admin)) {
+            return false;  // admin can have infinite amount of book
+        }
+
         // Rule: A user can only have 1 booking/day
         long count = bookingRepository.countAndLockByUserIdAndBookingDateAndStatus(userId, date, Status.confirmed)
                 + bookingRepository.countAndLockByUserIdAndBookingDateAndStatus(userId, date, Status.pending);
+
         if (count >= 1) {
             logger.warn("Quota exceeded for userId: {} on date: {}", userId, date);
             return true;
