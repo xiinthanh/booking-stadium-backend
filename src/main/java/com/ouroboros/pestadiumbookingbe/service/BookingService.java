@@ -7,6 +7,7 @@ import com.ouroboros.pestadiumbookingbe.exception.RequestTimeoutException;
 import com.ouroboros.pestadiumbookingbe.exception.ServiceUnavailableException;
 import com.ouroboros.pestadiumbookingbe.model.Booking;
 import com.ouroboros.pestadiumbookingbe.model.ProfileType;
+import com.ouroboros.pestadiumbookingbe.model.SportHallLocation;
 import com.ouroboros.pestadiumbookingbe.model.Status;
 import com.ouroboros.pestadiumbookingbe.notifier.BookingNotificationType;
 import com.ouroboros.pestadiumbookingbe.repository.BookingRepository;
@@ -30,6 +31,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class BookingService {
@@ -446,5 +448,23 @@ public class BookingService {
             logger.error("Error fetching bookings for userId: {}", userId, e);
             throw new RuntimeException("An error occurred while fetching bookings for the user.");
         }
+    }
+
+    @Transactional(readOnly = true)
+    public List<Booking> filterBookings(Optional<UUID> userIdOpt,
+                                        Optional<SportHallLocation> locationOpt,
+                                        Optional<ProfileType> profileTypeOpt,
+                                        Optional<Status> statusOpt) {
+        List<Booking> bookings = bookingRepository.findAll();
+        return bookings.stream()
+                .filter(b -> userIdOpt.map(id -> b.getUserId().equals(id)).orElse(true))
+                .filter(b -> statusOpt.map(s -> b.getStatus().equals(s)).orElse(true))
+                .filter(b -> locationOpt.map(loc -> sportHallRepository.findById(b.getSportHallId())
+                        .map(h -> h.getLocation().equals(loc))
+                        .orElse(false)).orElse(true))
+                .filter(b -> profileTypeOpt.map(pt -> profileRepository.findById(b.getUserId())
+                        .map(p -> p.getType().equals(pt))
+                        .orElse(false)).orElse(true))
+                .collect(Collectors.toList());
     }
 }

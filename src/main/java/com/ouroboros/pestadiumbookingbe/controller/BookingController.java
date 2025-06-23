@@ -3,6 +3,9 @@ package com.ouroboros.pestadiumbookingbe.controller;
 import com.ouroboros.pestadiumbookingbe.dto.BookingRequest;
 import com.ouroboros.pestadiumbookingbe.service.BookingService;
 import com.ouroboros.pestadiumbookingbe.model.Booking;
+import com.ouroboros.pestadiumbookingbe.model.SportHallLocation;
+import com.ouroboros.pestadiumbookingbe.model.ProfileType;
+import com.ouroboros.pestadiumbookingbe.model.Status;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -84,6 +88,26 @@ public class BookingController {
         try {
             UUID userIdUUID = UUID.fromString(userId);
             List<Booking> bookings = bookingService.getBookingsByUserId(userIdUUID);
+            return ResponseEntity.ok(bookings);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @GetMapping("/filter-bookings")
+    public ResponseEntity<List<Booking>> filterBookings(
+            @RequestParam(required = false) String userId,
+            @RequestParam(required = false) SportHallLocation location,
+            @RequestParam(required = false) ProfileType profileType,
+            @RequestParam(required = false) Status status) {
+        try {
+            Optional<UUID> userIdOpt = Optional.ofNullable(userId).map(UUID::fromString);
+            List<Booking> bookings = bookingService.filterBookings(
+                userIdOpt,
+                Optional.ofNullable(location),
+                Optional.ofNullable(profileType),
+                Optional.ofNullable(status)
+            );
             return ResponseEntity.ok(bookings);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
