@@ -105,6 +105,7 @@ class BookingServiceIntegrationTest {
         otherDate = LocalDate.now().plusDays(2);
     }
 
+
     @Test
     void createBooking_persistsToDb() {
         long before = bookingRepository.count();
@@ -206,9 +207,9 @@ class BookingServiceIntegrationTest {
         bookingService.confirmBooking(b.getId(), userId); // confirm the original booking
 
         // another user tries same slot
-        assertThrows(ConflictException.class, () -> {
-            bookingService.createBooking(otherUserId, hallId, sportId, date, slotId, "conflict");
-        });
+        assertThrows(ConflictException.class, () ->
+            bookingService.createBooking(otherUserId, hallId, sportId, date, slotId, "conflict")
+        );
     }
 
     @Test
@@ -244,9 +245,18 @@ class BookingServiceIntegrationTest {
     }
 
     @Test
-    void confirmBooking_confirmedStatus() {
+    void confirmBooking_pendingBooking() {
         Booking b = bookingService.createBooking(userId, hallId, sportId, date, slotId, "purpose");
         Booking c = bookingService.confirmBooking(b.getId(), userId);
+        assertEquals(Status.confirmed, c.getStatus());
+    }
+    @Test
+    void confirmBooking_canceledBooking() {
+        Booking b = bookingService.createBooking(userId, hallId, sportId, date, slotId, "purpose");
+        bookingService.cancelBooking(b.getId(), userId); // cancel first
+
+        Booking c = bookingService.confirmBooking(b.getId(), userId);
+
         assertEquals(Status.confirmed, c.getStatus());
     }
 
@@ -272,16 +282,6 @@ class BookingServiceIntegrationTest {
 
         assertThrows(BadRequestException.class, () ->
             bookingService.confirmBooking(b.getId(), userId) // try to confirm again
-        );
-    }
-
-    @Test
-    void confirmBooking_alreadyCanceled_throwsBadRequest() {
-        Booking b = bookingService.createBooking(userId, hallId, sportId, date, slotId, "purpose");
-        bookingService.cancelBooking(b.getId(), userId); // cancel first
-
-        assertThrows(BadRequestException.class, () ->
-            bookingService.confirmBooking(b.getId(), userId) // try to confirm after cancel
         );
     }
 
@@ -440,6 +440,48 @@ class BookingServiceIntegrationTest {
     }
 
     @Test
+    void modifyBooking_changeSportHall() {
+        Booking m = bookingService.createBooking(userId, hallId, sportId,
+                date, slotId, "purpose");
+
+        Booking updated = bookingService.modifyBooking(
+            m.getId(), userId, userId, otherHallId, sportId, date, slotId, "purpose");
+
+        assertEquals(otherHallId, updated.getSportHallId());
+    }
+
+    @Test
+    void modifyBooking_changeAll() {
+        Booking m = bookingService.createBooking(userId, hallId, sportId,
+                date, slotId, "purpose");
+
+        Booking updated = bookingService.modifyBooking(
+                m.getId(), otherUserId, userId, otherHallId, otherSportId, otherDate, otherSlotId, "new purpose");
+
+        assertEquals(otherHallId, updated.getSportHallId());
+        assertEquals(otherSportId, updated.getSportId());
+        assertEquals(otherDate, updated.getBookingDate());
+        assertEquals(otherSlotId, updated.getTimeSlotId());
+        assertEquals("new purpose", updated.getPurpose());
+        assertNull(updated.getCanceledAt());
+        assertNull(updated.getCanceledBy());
+        assertEquals(Status.pending, updated.getStatus());
+    }
+
+    @Test
+    void modifyBooking_changeConfirmedBooking() {
+        Booking m = bookingService.createBooking(userId, hallId, sportId,
+            date, slotId, "purpose");
+        bookingService.confirmBooking(m.getId(), userId); // confirm first
+
+        Booking updated = bookingService.modifyBooking(
+            m.getId(), userId, userId, otherHallId, otherSportId, otherDate, otherSlotId, "new purpose");
+
+        assertEquals("new purpose", updated.getPurpose());
+        assertEquals(Status.pending, updated.getStatus());
+    }
+
+    @Test
     void modifyBooking_nullBookingId_throwsBadRequest() {
         assertThrows(BadRequestException.class, () ->
             bookingService.modifyBooking(null, userId, userId, hallId, sportId,
@@ -468,9 +510,180 @@ class BookingServiceIntegrationTest {
     }
 
     @Test
+    void modifyBooking_invalidModifiedByUserId_throwsBadRequest() {
+        Booking m = bookingService.createBooking(userId, hallId, sportId,
+            date, slotId, "purpose");
+
+        assertThrows(BadRequestException.class, () ->
+            bookingService.modifyBooking(m.getId(), UUID.randomUUID(), userId, hallId, sportId, date, slotId, "new purpose")
+        );
+    }
+
+    @Test
+    void modifyBooking_invalidSportHall_throwsBadRequest() {
+        Booking m = bookingService.createBooking(userId, hallId, sportId,
+            date, slotId, "purpose");
+
+        assertThrows(BadRequestException.class, () ->
+            bookingService.modifyBooking(m.getId(), userId, userId, UUID.randomUUID(), sportId, date, slotId, "new purpose")
+        );
+    }
+
+    @Test
+    void modifyBooking_invalidTimeSlot_throwsBadRequest() {
+        Booking m = bookingService.createBooking(userId, hallId, sportId,
+            date, slotId, "purpose");
+
+        assertThrows(BadRequestException.class, () ->
+            bookingService.modifyBooking(m.getId(), userId, userId, hallId, sportId, date, UUID.randomUUID(), "new purpose")
+        );
+    }
+
+    @Test
+    void modifyBooking_pastDate_throwsBadRequest() {
+        Booking m = bookingService.createBooking(userId, hallId, sportId,
+            date, slotId, "purpose");
+
+        assertThrows(BadRequestException.class, () ->
+            bookingService.modifyBooking(m.getId(), userId, userId, hallId, sportId,
+                LocalDate.now().minusDays(1), slotId, "new purpose")
+        );
+    }
+
+    @Test
+    void modifyBooking_moreThanOneYearInFuture_throwsBadRequest() {
+        Booking m = bookingService.createBooking(userId, hallId, sportId,
+            date, slotId, "purpose");
+
+        assertThrows(BadRequestException.class, () ->
+            bookingService.modifyBooking(m.getId(), userId, userId, hallId, sportId,
+                LocalDate.now().plusYears(1).plusDays(1), slotId, "new purpose")
+        );
+    }
+
+    @Test
+    void modifyBooking_emptyPurpose_throwsBadRequest() {
+        Booking m = bookingService.createBooking(userId, hallId, sportId,
+            date, slotId, "purpose");
+
+        assertThrows(BadRequestException.class, () ->
+            bookingService.modifyBooking(m.getId(), userId, userId, hallId, sportId, date, slotId, "")
+        );
+    }
+
+    @Test
+    void modifyBooking_nullPurpose_throwsBadRequest() {
+        Booking m = bookingService.createBooking(userId, hallId, sportId,
+            date, slotId, "purpose");
+
+        assertThrows(BadRequestException.class, () ->
+            bookingService.modifyBooking(m.getId(), userId, userId, hallId, sportId, date, slotId, null)
+        );
+    }
+
+    @Test
+    void modifyBooking_nonexistentBooking_throwsBadRequest() {
+        assertThrows(BadRequestException.class, () ->
+            bookingService.modifyBooking(UUID.randomUUID(), userId, userId, hallId, sportId, date, slotId, "new purpose")
+        );
+    }
+
+    @Test
+    void modifyBooking_rejectedBooking_throwsBadRequest() {
+        Booking m = bookingService.createBooking(userId, hallId, sportId,
+            date, slotId, "purpose");
+        bookingService.cancelBooking(m.getId(), userId); // cancel first
+
+        assertThrows(BadRequestException.class, () ->
+            bookingService.modifyBooking(m.getId(), userId, userId, hallId, sportId, date, slotId, "new purpose")
+        );
+    }
+
+    @Test
+    void modifyBooking_quotaExceeded_throwsForbidden() {
+        Booking m = bookingService.createBooking(userId, hallId, sportId,
+            date, slotId, "purpose");
+
+        // Create another booking to fill quota
+        bookingService.createBooking(userId, otherHallId, otherSportId,
+            otherDate, otherSlotId, "other purpose");
+
+        // Now modifying should throw ForbiddenException
+        assertThrows(ForbiddenException.class, () ->
+            bookingService.modifyBooking(m.getId(), userId, userId, hallId, sportId, otherDate, slotId, "new purpose")
+        );
+    }
+
+    @Test
+    void modifyBooking_occupiedPendingBooking_throwsConflict() {
+        Booking m = bookingService.createBooking(userId, hallId, sportId,
+            date, slotId, "purpose");
+        bookingService.createBooking(otherUserId, otherHallId, otherSportId,
+            otherDate, otherSlotId, "other purpose");
+
+        // Another user tries to modify same slot
+        assertThrows(ConflictException.class, () ->
+            bookingService.modifyBooking(m.getId(), userId, userId, otherHallId, otherSportId,
+                    otherDate, otherSlotId, "conflict purpose")
+        );
+    }
+
+    @Test
+    void modifyBooking_occupiedConfirmedBooking_throwsConflict() {
+        Booking m = bookingService.createBooking(userId, hallId, sportId,
+            date, slotId, "purpose");
+
+        Booking mOther = bookingService.createBooking(otherUserId, otherHallId, otherSportId,
+                otherDate, otherSlotId, "other purpose");
+        bookingService.confirmBooking(mOther.getId(), otherUserId); // confirm first
+
+        // Another user tries to modify same slot
+        assertThrows(ConflictException.class, () ->
+            bookingService.modifyBooking(m.getId(), userId, userId, otherHallId, otherSportId,
+                    otherDate, otherSlotId, "conflict purpose")
+        );
+    }
+
+    @Test
+    void modifyBooking_dataAccessResourceFailureException_throwsServiceUnavailable() {
+        Booking m = bookingService.createBooking(userId, hallId, sportId,
+            date, slotId, "purpose");
+        doThrow(new DataAccessResourceFailureException("Database error"))
+                .when(profileRepository).findById(any(UUID.class));
+
+        assertThrows(ServiceUnavailableException.class, () ->
+            bookingService.modifyBooking(m.getId(), userId, userId, hallId, sportId, date, slotId, "new purpose")
+        );
+    }
+
+    @Test
+    void modifyBooking_transactionTimeout_throwsRequestTimeout() {
+        Booking m = bookingService.createBooking(userId, hallId, sportId,
+            date, slotId, "purpose");
+        doThrow(new TransactionTimedOutException("Transaction timed out"))
+                .when(bookingRepository).save(any(Booking.class));
+
+        assertThrows(RequestTimeoutException.class, () ->
+            bookingService.modifyBooking(m.getId(), userId, userId, hallId, sportId, date, slotId, "new purpose")
+        );
+    }
+
+    @Test
+    void modifyBooking_genericException_throwsRuntimeException() {
+        Booking m = bookingService.createBooking(userId, hallId, sportId,
+            date, slotId, "purpose");
+        doThrow(new RuntimeException("Unexpected error"))
+                .when(bookingRepository).save(any(Booking.class));
+
+        assertThrows(RuntimeException.class, () ->
+            bookingService.modifyBooking(m.getId(), userId, userId, hallId, sportId, date, slotId, "new purpose")
+        );
+    }
+
+    @Test
     void deleteBooking_validBooking_removesFromDb() {
         Booking p = bookingService.createBooking(userId, hallId, sportId,
-            LocalDate.now().plusDays(7), slotId, "purpose");
+            date, slotId, "purpose");
         assertNotNull(bookingRepository.findById(p.getId()).orElse(null));
 
         // Should not throw and should remove from DB
@@ -488,7 +701,7 @@ class BookingServiceIntegrationTest {
     @Test
     void deleteBooking_invalidUserId_throwsBadRequest() {
         Booking p = bookingService.createBooking(userId, hallId, sportId,
-            LocalDate.now().plusDays(8), slotId, "purpose");
+            date, slotId, "purpose");
 
         assertThrows(BadRequestException.class, () ->
             bookingService.deleteBooking(p.getId(), UUID.randomUUID())
@@ -496,13 +709,41 @@ class BookingServiceIntegrationTest {
     }
 
     @Test
-    void getBookingById_validId_returnsBooking() {
+    void deleteBooking_dataAccessResourceFailureException_throwsServiceUnavailable() {
         Booking p = bookingService.createBooking(userId, hallId, sportId,
-            LocalDate.now().plusDays(9), slotId, "purpose");
+            date, slotId, "purpose");
+        doThrow(new DataAccessResourceFailureException("Database error"))
+                .when(bookingRepository).delete(any(Booking.class));
 
-        Booking found = bookingService.getBookingById(p.getId());
-        assertNotNull(found);
+        assertThrows(ServiceUnavailableException.class, () ->
+            bookingService.deleteBooking(p.getId(), userId)
+        );
     }
+
+    @Test
+    void deleteBooking_transactionTimeout_throwsRequestTimeout() {
+        Booking p = bookingService.createBooking(userId, hallId, sportId,
+            date, slotId, "purpose");
+        doThrow(new TransactionTimedOutException("Transaction timed out"))
+                .when(bookingRepository).delete(any(Booking.class));
+
+        assertThrows(RequestTimeoutException.class, () ->
+            bookingService.deleteBooking(p.getId(), userId)
+        );
+    }
+
+    @Test
+    void deleteBooking_genericException_throwsRuntimeException() {
+        Booking p = bookingService.createBooking(userId, hallId, sportId,
+            date, slotId, "purpose");
+        doThrow(new RuntimeException("Unexpected error"))
+                .when(bookingRepository).delete(any(Booking.class));
+
+        assertThrows(RuntimeException.class, () ->
+            bookingService.deleteBooking(p.getId(), userId)
+        );
+    }
+
 
     @Test
     void getAllBookings_returnsAllBookings() {
@@ -511,12 +752,69 @@ class BookingServiceIntegrationTest {
 
         // Create several bookings
         bookingService.createBooking(userId, hallId, sportId,
-            LocalDate.now().plusDays(10), slotId, "first");
-        bookingService.createBooking(userId, hallId, sportId,
-            LocalDate.now().plusDays(11), slotId, "second");
+            date, slotId, "first");
+        bookingService.createBooking(otherUserId, otherHallId, otherSportId,
+            otherDate, otherSlotId, "second");
 
         List<Booking> bookings = bookingService.getAllBookings();
         assertEquals(2, bookings.size());
+    }
+
+    @Test
+    void getAllBookings_dataAccessResourceFailureException_throwsServiceUnavailable() {
+        doThrow(new DataAccessResourceFailureException("Database error"))
+                .when(bookingRepository).findAll();
+
+        assertThrows(ServiceUnavailableException.class, () ->
+            bookingService.getAllBookings()
+        );
+    }
+
+    @Test
+    void getAllBookings_genericException_throwsRuntimeException() {
+        doThrow(new RuntimeException("Unexpected error"))
+                .when(bookingRepository).findAll();
+
+        assertThrows(RuntimeException.class, () ->
+            bookingService.getAllBookings()
+        );
+    }
+
+    @Test
+    void getBookingById_validId_returnsBooking() {
+        Booking p = bookingService.createBooking(userId, hallId, sportId,
+                date, slotId, "purpose");
+
+        Booking found = bookingService.getBookingById(p.getId());
+        assertNotNull(found);
+        assertEquals(p.getId(), found.getId());
+    }
+
+    @Test
+    void getBookingById_invalidId_throwsBadRequest() {
+        assertThrows(BadRequestException.class, () ->
+            bookingService.getBookingById(UUID.randomUUID())
+        );
+    }
+
+    @Test
+    void getBookingById_dataAccessResourceFailureException_throwsServiceUnavailable() {
+        doThrow(new DataAccessResourceFailureException("Database error"))
+                .when(bookingRepository).findById(any(UUID.class));
+
+        assertThrows(ServiceUnavailableException.class, () ->
+            bookingService.getBookingById(UUID.randomUUID())
+        );
+    }
+
+    @Test
+    void getBookingById_genericException_throwsRuntimeException() {
+        doThrow(new RuntimeException("Unexpected error"))
+                .when(bookingRepository).findById(any(UUID.class));
+
+        assertThrows(RuntimeException.class, () ->
+            bookingService.getBookingById(UUID.randomUUID())
+        );
     }
 
     @Test
@@ -526,32 +824,46 @@ class BookingServiceIntegrationTest {
 
         // Create booking for our test user
         bookingService.createBooking(userId, hallId, sportId,
-            LocalDate.now().plusDays(12), slotId, "mine");
+            date, slotId, "mine");
 
-        // Create second user and booking for them
-        Profile other = new Profile();
-        other.setEmail("other2@test.com");
-        other.setType(ProfileType.user);
-        UUID otherId = profileRepository.save(other).getId();
-
-        bookingService.createBooking(otherId, hallId, sportId,
-            LocalDate.now().plusDays(13), slotId, "theirs");
+        bookingService.createBooking(otherUserId, otherHallId, otherSportId,
+            otherDate, slotId, "theirs");
 
         // User should only see their own booking
         List<Booking> userBookings = bookingService.getBookingsByUserId(userId);
         assertEquals(1, userBookings.size());
-        assertEquals("mine", userBookings.get(0).getPurpose());
+        assertEquals("mine", userBookings.getFirst().getPurpose());
 
         // Other user should only see their booking
-        List<Booking> otherBookings = bookingService.getBookingsByUserId(otherId);
+        List<Booking> otherBookings = bookingService.getBookingsByUserId(otherUserId);
         assertEquals(1, otherBookings.size());
-        assertEquals("theirs", otherBookings.get(0).getPurpose());
+        assertEquals("theirs", otherBookings.getFirst().getPurpose());
     }
 
     @Test
     void getBookingsByUserId_invalidUser_throwsBadRequest() {
         assertThrows(BadRequestException.class, () ->
             bookingService.getBookingsByUserId(UUID.randomUUID())
+        );
+    }
+
+    @Test
+    void getBookingsByUserId_dataAccessResourceFailureException_throwsServiceUnavailable() {
+        doThrow(new DataAccessResourceFailureException("Database error"))
+                .when(profileRepository).findById(any(UUID.class));
+
+        assertThrows(ServiceUnavailableException.class, () ->
+            bookingService.getBookingsByUserId(userId)
+        );
+    }
+
+    @Test
+    void getBookingsByUserId_genericException_throwsRuntimeException() {
+        doThrow(new RuntimeException("Unexpected error"))
+                .when(profileRepository).findById(any(UUID.class));
+
+        assertThrows(RuntimeException.class, () ->
+            bookingService.getBookingsByUserId(userId)
         );
     }
 }

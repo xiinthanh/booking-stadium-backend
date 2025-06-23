@@ -47,7 +47,7 @@ public class BookingService {
     public TimeSlotRepository timeSlotRepository;
 
     // Rename validation methods to reflect inverted logic
-    private boolean isInvalidUser(UUID userId) {
+    boolean isInvalidUser(UUID userId) {
         if (profileRepository.findById(userId).isEmpty()) {
             logger.warn("User profile not found for userId: {}", userId);
             return true;
@@ -83,7 +83,7 @@ public class BookingService {
         return false;
     }
 
-    private boolean quotaExceeded(UUID userId, LocalDate date) {
+    boolean quotaExceeded(UUID userId, LocalDate date) {
         // Rule: A user can only have 1 booking/day
         long count = bookingRepository.countAndLockByUserIdAndBookingDateAndStatus(userId, date, Status.confirmed)
                 + bookingRepository.countAndLockByUserIdAndBookingDateAndStatus(userId, date, Status.pending);
@@ -94,7 +94,7 @@ public class BookingService {
         return false;
     }
 
-    private boolean isOccupiedBooking(UUID sportHallId, LocalDate date, UUID timeSlotId) {
+    boolean isOccupiedBooking(UUID sportHallId, LocalDate date, UUID timeSlotId) {
         List<Booking> existingPendingBooking = bookingRepository.findAndLockBySportHallIdAndBookingDateAndTimeSlotIdAndStatus(
                 sportHallId, date, timeSlotId, Status.pending);
         List<Booking> existingConfirmedBooking = bookingRepository.findAndLockBySportHallIdAndBookingDateAndTimeSlotIdAndStatus(
@@ -182,9 +182,9 @@ public class BookingService {
                 throw new BadRequestException("Booking not found.");
             }
 
-            if (booking.getStatus() != Status.pending) {
-                logger.error("Booking with ID: {} is not in pending status. Current status: {}", bookingId, booking.getStatus());
-                throw new BadRequestException("Only pending bookings can be confirmed.");
+            if (booking.getStatus() != Status.pending && booking.getStatus() != Status.rejected) {
+                logger.error("Booking with ID: {} is not in pending/rejected status. Current status: {}", bookingId, booking.getStatus());
+                throw new BadRequestException("Only pending/rejected bookings can be confirmed.");
             }
 
             // Update booking status
@@ -302,7 +302,7 @@ public class BookingService {
                     !booking.getTimeSlotId().equals(timeSlotId)) {
                 // the (sportHallId, bookingDate, getTimeSlotId) value of the new version does not match the older version
                 if (isOccupiedBooking(sportHallId, date, timeSlotId)) {
-                    throw new BadRequestException("A booking already exists for the given combination.");
+                    throw new ConflictException("A booking already exists for the given combination.");
                 }
             }
 
@@ -330,13 +330,13 @@ public class BookingService {
             }
 
             return savedBooking;
-        } catch (org.springframework.dao.DataAccessException ex) {
+        } catch (DataAccessResourceFailureException ex) {
             logger.error("Database error during booking modification", ex);
             throw new ServiceUnavailableException("The service is temporarily unavailable due to database issues. Please try again later.");
         } catch (TransactionTimedOutException ex) {
              logger.error("Transaction timed out during booking modification for booking ID: {}", bookingId, ex);
              throw new RequestTimeoutException("The request timed out. Please try again later.");
-        } catch (BadRequestException | ForbiddenException e) {
+        } catch (BadRequestException | ForbiddenException | ConflictException e) {
             throw e;
         } catch (Exception e) {
              logger.error("Error modifying booking with ID: {}", bookingId, e);
@@ -372,7 +372,7 @@ public class BookingService {
             }
 
             logger.info("Booking deleted successfully with ID: {}", bookingId);
-        } catch (org.springframework.dao.DataAccessException ex) {
+        } catch (DataAccessResourceFailureException ex) {
             logger.error("Database error during booking deletion for booking ID: {}", bookingId, ex);
             throw new ServiceUnavailableException("The service is temporarily unavailable due to database issues. Please try again later.");
         } catch (TransactionTimedOutException ex) {
@@ -390,7 +390,7 @@ public class BookingService {
         logger.info("Fetching all bookings");
         try {
             return bookingRepository.findAll();
-        } catch (org.springframework.dao.DataAccessException ex) {
+        } catch (DataAccessResourceFailureException ex) {
             logger.error("Database error fetching all bookings", ex);
             throw new ServiceUnavailableException("The service is temporarily unavailable due to database issues. Please try again later.");
         } catch (Exception e) {
@@ -409,7 +409,7 @@ public class BookingService {
                 logger.warn("No booking found for ID: {}", id);
                 throw new BadRequestException("Booking id not found.");
             }
-        } catch (org.springframework.dao.DataAccessException ex) {
+        } catch (DataAccessResourceFailureException ex) {
             logger.error("Database error fetching booking with ID: {}", id, ex);
             throw new ServiceUnavailableException("The service is temporarily unavailable due to database issues. Please try again later.");
         } catch (BadRequestException e) {
@@ -430,7 +430,7 @@ public class BookingService {
             }
 
             return bookingRepository.findByUserId(userId);
-        } catch (org.springframework.dao.DataAccessException ex) {
+        } catch (DataAccessResourceFailureException ex) {
             logger.error("Database error fetching bookings for userId: {}", userId, ex);
             throw new ServiceUnavailableException("The service is temporarily unavailable due to database issues. Please try again later.");
         } catch (BadRequestException e) {

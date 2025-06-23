@@ -34,4 +34,10 @@ class NotificationServiceIntegrationTest {
             assertDoesNotThrow(() -> notificationService.notifyOnBookingChange(dummy, type));
         }
     }
+
+    @Test
+    void notifyOnBookingChange_withInvalidType_doesNotThrow() {
+        Booking dummy = new Booking();
+        assertDoesNotThrow(() -> notificationService.notifyOnBookingChange(dummy, null));
+    }
 }
