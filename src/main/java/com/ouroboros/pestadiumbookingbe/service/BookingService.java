@@ -15,6 +15,9 @@ import com.ouroboros.pestadiumbookingbe.repository.TimeSlotRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
+import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.TransactionTimedOutException;
 import org.springframework.transaction.annotation.Transactional;
@@ -52,7 +55,7 @@ public class BookingService {
         return false;
     }
 
-    private boolean isInvalidSportHall(UUID sportHallId) {
+    boolean isInvalidSportHall(UUID sportHallId) {
         if (sportHallRepository.findById(sportHallId).isEmpty()) {
             logger.warn("Sport hall ID not found for sportHallId: {}", sportHallId);
             return true;
@@ -60,7 +63,7 @@ public class BookingService {
         return false;
     }
 
-    private boolean isInvalidTimeSlot(UUID timeSlotId) {
+    boolean isInvalidTimeSlot(UUID timeSlotId) {
         if (timeSlotRepository.findById(timeSlotId).isEmpty()) {
             logger.warn("Time slot ID not found for timeSlotId: {}", timeSlotId);
             return true;
@@ -68,7 +71,7 @@ public class BookingService {
         return false;
     }
 
-    private boolean isInvalidBookingDate(LocalDate date) {
+    boolean isInvalidBookingDate(LocalDate date) {
         if (date.isBefore(LocalDate.now())) {
             logger.warn("Booking date cannot be in the past: {}", date);
             return true;
@@ -120,7 +123,7 @@ public class BookingService {
 
             // Make sure not overlapping with existing bookings
             if (isOccupiedBooking(sportHallId, date, timeSlotId)) {
-                throw new BadRequestException("A booking already exists for the given combination.");
+                throw new ConflictException("A booking already exists for the given combination.");
             }
 
             // Create and save the new booking
@@ -150,16 +153,13 @@ public class BookingService {
             }
 
             return savedBooking;
-        } catch (org.springframework.dao.DataIntegrityViolationException ex) {
-            logger.error("Database constraint violation during booking creation", ex);
-            throw new ConflictException("A booking already exists for the given combination.");
-        } catch (org.springframework.dao.DataAccessException ex) {
+        } catch (DataAccessResourceFailureException ex) {
             logger.error("Database error during booking creation", ex);
             throw new ServiceUnavailableException("The service is temporarily unavailable due to database issues. Please try again later.");
         } catch (TransactionTimedOutException ex) {
              logger.error("Transaction timed out during booking creation", ex);
              throw new RequestTimeoutException("The request timed out. Please try again later.");
-        } catch (BadRequestException | ForbiddenException e) {
+        } catch (BadRequestException | ForbiddenException | ConflictException e) {
             throw e;
         } catch (Exception e) {
              logger.error("Error occurred while creating booking: {}", e.getMessage(), e);
@@ -253,7 +253,7 @@ public class BookingService {
 
             logger.info("Booking canceled successfully with ID: {}", bookingId);
             return savedBooking;
-        } catch (org.springframework.dao.DataAccessException ex) {
+        } catch (DataAccessResourceFailureException ex) {
             logger.error("Database error during booking cancellation for booking ID: {}", bookingId, ex);
             throw new ServiceUnavailableException("The service is temporarily unavailable due to database issues. Please try again later.");
         } catch (TransactionTimedOutException ex) {
@@ -271,7 +271,10 @@ public class BookingService {
     public Booking modifyBooking(UUID bookingId, UUID modifiedByUserId, UUID userId, UUID sportHallId, UUID sportId, LocalDate date, UUID timeSlotId, String purpose) {
         logger.info("Modifying booking with ID: {} for userId: {}, sportHallId: {}, sportId: {}, date: {}, timeSlotId: {}, purpose: {}", bookingId, userId, sportHallId, sportId, date, timeSlotId, purpose);
         try {
-            if (bookingId == null || modifiedByUserId == null || isInvalidUser(userId) || isInvalidSportHall(sportHallId) || isInvalidTimeSlot(timeSlotId) || isInvalidBookingDate(date) || purpose == null || purpose.isEmpty()) {
+            if (bookingId == null || modifiedByUserId == null ||
+                    isInvalidUser(modifiedByUserId) || isInvalidUser(userId) ||
+                    isInvalidSportHall(sportHallId) || isInvalidTimeSlot(timeSlotId) ||
+                    isInvalidBookingDate(date) || purpose == null || purpose.isEmpty()) {
                 logger.error("Invalid input parameters for booking modification: bookingId={}, modifiedByUserId={}, userId={}, sportHallId={}, sportId={}, date={}, timeSlotId={}, purpose={}", bookingId, modifiedByUserId, userId, sportHallId, sportId, date, timeSlotId, purpose);
                 throw new BadRequestException("Invalid input parameters.");
             }
