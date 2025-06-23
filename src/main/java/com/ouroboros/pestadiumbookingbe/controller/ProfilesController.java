@@ -37,4 +37,14 @@ public class ProfilesController {
         profileService.deleteProfile(id);
         return ResponseEntity.noContent().build();
     }
+    @PostMapping("/promote-admin")
+    public ResponseEntity<Profile> promoteToAdmin(@RequestParam UUID id) {
+        Profile updated = profileService.promoteToAdmin(id);
+        return ResponseEntity.ok(updated);
+    }
+    @PostMapping("/demote-admin")
+    public ResponseEntity<Profile> demoteFromAdmin(@RequestParam UUID id) {
+        Profile updated = profileService.demoteFromAdmin(id);
+        return ResponseEntity.ok(updated);
+    }
 }
