@@ -5,6 +5,7 @@ import com.ouroboros.pestadiumbookingbe.exception.RequestTimeoutException;
 import com.ouroboros.pestadiumbookingbe.exception.ServiceUnavailableException;
 import com.ouroboros.pestadiumbookingbe.model.Profile;
 import com.ouroboros.pestadiumbookingbe.repository.ProfileRepository;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.transaction.TransactionTimedOutException;
 import org.springframework.transaction.annotation.Transactional;
 import org.slf4j.Logger;
@@ -27,7 +28,7 @@ public class ProfileService {
         logger.info("Fetching all profiles");
         try {
             return profileRepository.findAll();
-        } catch (org.springframework.dao.DataAccessException ex) {
+        } catch (DataAccessResourceFailureException ex) {
             logger.error("Database error fetching profiles", ex);
             throw new ServiceUnavailableException("Service unavailable due to database issues");
         } catch (Exception e) {
@@ -41,7 +42,7 @@ public class ProfileService {
         try {
             return profileRepository.findById(id)
                     .orElseThrow(() -> new BadRequestException("Profile not found"));
-        } catch (org.springframework.dao.DataAccessException ex) {
+        } catch (DataAccessResourceFailureException ex) {
             logger.error("Database error fetching profile with ID: {}", id, ex);
             throw new ServiceUnavailableException("Service unavailable due to database issues");
         } catch (BadRequestException e) {
@@ -59,15 +60,12 @@ public class ProfileService {
             profileRepository.findAndLockById(profile.getId())
                     .orElseThrow(() -> new BadRequestException("Profile not found"));
             return profileRepository.save(profile);
-        } catch (org.springframework.dao.DataAccessException ex) {
+        } catch (DataAccessResourceFailureException ex) {
             logger.error("Database error updating profile with ID: {}", profile.getId(), ex);
             throw new ServiceUnavailableException("Service unavailable due to database issues");
         } catch (TransactionTimedOutException ex) {
             logger.error("Transaction timed out while updating profile with ID: {}", profile.getId(), ex);
             throw new RequestTimeoutException("Request timed out while updating profile");
-        } catch (IllegalArgumentException ex) {
-            logger.error("Invalid argument provided for profile update with ID: {}", profile.getId(), ex);
-            throw new BadRequestException("Invalid profile data");
         } catch (BadRequestException e) {
             throw e;
         } catch (Exception e) {
