@@ -9,8 +9,6 @@ import com.ouroboros.pestadiumbookingbe.repository.SportRepository;
 import com.ouroboros.pestadiumbookingbe.repository.TimeSlotRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataAccessResourceFailureException;
@@ -26,7 +24,7 @@ import static org.mockito.Mockito.doThrow;
 @SpringBootTest
 @AutoConfigureTestDatabase
 @Transactional
-class StadiumInfoServiceIntegrationTest {
+class StadiumInfoServiceTest {
 
     @MockitoSpyBean
     private StadiumInfoService stadiumInfoService;

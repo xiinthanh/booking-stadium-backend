@@ -25,7 +25,7 @@ import static org.mockito.Mockito.doThrow;
 @SpringBootTest
 @AutoConfigureTestDatabase
 @Transactional
-class BookingServiceIntegrationTest {
+class BookingServiceTest {
 
     @Autowired BookingService bookingService;
     @MockitoSpyBean BookingRepository bookingRepository;

@@ -114,6 +114,9 @@ public class ProfileService {
         } catch (DataAccessResourceFailureException ex) {
             logger.error("Database error promoting profile with ID: {}", id, ex);
             throw new ServiceUnavailableException("Service unavailable due to database issues");
+        } catch (TransactionTimedOutException ex) {
+            logger.error("Transaction timed out while promoting profile with ID: {}", id, ex);
+            throw new RequestTimeoutException("Request timed out while promoting profile");
         } catch (BadRequestException e) {
             throw e;
         } catch (Exception e) {
@@ -122,6 +125,7 @@ public class ProfileService {
         }
     }
 
+    @Transactional(timeout = 2)
     public Profile demoteFromAdmin(UUID id) {
         logger.info("Demoting profile with ID: {} from admin", id);
         try {
@@ -136,6 +140,9 @@ public class ProfileService {
         } catch (DataAccessResourceFailureException ex) {
             logger.error("Database error demoting profile with ID: {}", id, ex);
             throw new ServiceUnavailableException("Service unavailable due to database issues");
+        } catch (TransactionTimedOutException ex) {
+            logger.error("Transaction timed out while demoting profile with ID: {}", id, ex);
+            throw new RequestTimeoutException("Request timed out while demoting profile");
         } catch (BadRequestException e) {
             throw e;
         } catch (Exception e) {
