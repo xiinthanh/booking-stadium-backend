@@ -51,14 +51,13 @@ class BookingServiceDatabaseErrorTest {
         hallId = UUID.randomUUID();
         slotId = UUID.randomUUID();
         sportId = UUID.randomUUID();
-
-
-        when(profileRepository.findById(userId))
-                .thenThrow(new DataAccessResourceFailureException("Database error"));
     }
 
     @Test
     void createBooking_dataAccessException_throwsServiceUnavailable() {
+        when(profileRepository.findById(userId))
+                .thenThrow(new DataAccessResourceFailureException("Database error"));
+
         LocalDate date = LocalDate.now().plusDays(1);
         assertThrows(ServiceUnavailableException.class, () ->
                 bookingService.createBooking(userId, hallId, sportId, date, slotId, "purpose")
