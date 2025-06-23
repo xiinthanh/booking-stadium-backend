@@ -1,0 +1,205 @@
+
+
+
+<!DOCTYPE html>
+<html id="htmlId">
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"> 
+  <title>Coverage Report > StadiumInfoService</title>
+  <style type="text/css">
+    @import "../../css/coverage.css";
+    @import "../../css/idea.min.css";
+  </style>
+  <script type="text/javascript" src="../../js/highlight.min.js"></script>
+  <script type="text/javascript" src="../../js/highlightjs-line-numbers.min.js"></script>
+</head>
+
+<body>
+<div class="content">
+<div class="breadCrumbs">
+Current scope:     <a href="../../index.html">all classes</a>
+    <span class="separator">|</span>
+    <a href="../index.html">com.ouroboros.pestadiumbookingbe.service</a>
+</div>
+
+<h1>Coverage Summary for Class: StadiumInfoService (com.ouroboros.pestadiumbookingbe.service)</h1>
+
+<table class="coverageStats">
+<tr>
+  <th class="name">Class</th>
+<th class="coverageStat 
+">
+  Class, %
+</th>
+<th class="coverageStat 
+">
+  Method, %
+</th>
+<th class="coverageStat 
+">
+  Branch, %
+</th>
+<th class="coverageStat 
+">
+  Line, %
+</th>
+</tr>
+<tr>
+  <td class="name">StadiumInfoService</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (1/1)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (5/5)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (6/6)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (32/32)
+  </span>
+</td>
+</tr>
+
+</table>
+
+<br/>
+<br/>
+
+
+<pre>
+<code class="sourceCode" id="sourceCode">&nbsp;package com.ouroboros.pestadiumbookingbe.service;
+&nbsp;
+&nbsp;import com.ouroboros.pestadiumbookingbe.exception.ServiceUnavailableException;
+&nbsp;import com.ouroboros.pestadiumbookingbe.model.SportHall;
+&nbsp;import com.ouroboros.pestadiumbookingbe.model.Sport;
+&nbsp;import com.ouroboros.pestadiumbookingbe.model.TimeSlot;
+&nbsp;import com.ouroboros.pestadiumbookingbe.repository.SportHallRepository;
+&nbsp;import com.ouroboros.pestadiumbookingbe.repository.SportRepository;
+&nbsp;import com.ouroboros.pestadiumbookingbe.repository.TimeSlotRepository;
+&nbsp;import org.slf4j.Logger;
+&nbsp;import org.slf4j.LoggerFactory;
+&nbsp;import org.springframework.beans.factory.annotation.Autowired;
+&nbsp;import org.springframework.dao.DataAccessResourceFailureException;
+&nbsp;import org.springframework.stereotype.Service;
+&nbsp;
+&nbsp;import java.util.List;
+&nbsp;
+&nbsp;@Service
+<b class="fc">&nbsp;public class StadiumInfoService {</b>
+&nbsp;
+&nbsp;    @Autowired
+&nbsp;    private SportHallRepository sportHallRepository;
+&nbsp;    @Autowired
+&nbsp;    private SportRepository sportRepository;
+&nbsp;    @Autowired
+&nbsp;    private TimeSlotRepository timeSlotRepository;
+&nbsp;
+<b class="fc">&nbsp;    private static final Logger logger = LoggerFactory.getLogger(StadiumInfoService.class);</b>
+&nbsp;
+&nbsp;    public List&lt;SportHall&gt; getAllSportHalls() {
+<b class="fc">&nbsp;        logger.info(&quot;getAllSportHalls&quot;);</b>
+&nbsp;        try {
+<b class="fc">&nbsp;            List&lt;SportHall&gt; sportHalls = sportHallRepository.findAll();</b>
+<b class="fc">&nbsp;            if (sportHalls.isEmpty()) {</b>
+<b class="fc">&nbsp;                logger.warn(&quot;No sport halls found&quot;);</b>
+<b class="fc">&nbsp;                throw new ServiceUnavailableException(&quot;No sport halls found&quot;);</b>
+&nbsp;            }
+<b class="fc">&nbsp;            return sportHalls;</b>
+&nbsp;        } catch (DataAccessResourceFailureException ex) {
+<b class="fc">&nbsp;            logger.error(&quot;Database error fetching sport halls&quot;, ex);</b>
+<b class="fc">&nbsp;            throw new ServiceUnavailableException(&quot;Database error fetching sport halls&quot;, ex);</b>
+&nbsp;        } catch (ServiceUnavailableException e) {
+&nbsp;            throw e;
+&nbsp;        } catch (Exception e) {
+<b class="fc">&nbsp;            logger.error(&quot;Error fetching sport halls&quot;, e);</b>
+<b class="fc">&nbsp;            throw new ServiceUnavailableException(&quot;Error fetching sport halls&quot;, e);</b>
+&nbsp;        }
+&nbsp;    }
+&nbsp;
+&nbsp;    public List&lt;Sport&gt; getAllSports() {
+<b class="fc">&nbsp;        logger.info(&quot;Fetching all sports from the repository&quot;);</b>
+&nbsp;        try {
+<b class="fc">&nbsp;            List&lt;Sport&gt; sports = sportRepository.findAll();</b>
+<b class="fc">&nbsp;            if (sports.isEmpty()) {</b>
+<b class="fc">&nbsp;                logger.warn(&quot;No sports found&quot;);</b>
+<b class="fc">&nbsp;                throw new ServiceUnavailableException(&quot;No sports found&quot;);</b>
+&nbsp;            }
+<b class="fc">&nbsp;            return sports;</b>
+&nbsp;        } catch (DataAccessResourceFailureException ex) {
+<b class="fc">&nbsp;            logger.error(&quot;Database error fetching sports&quot;, ex);</b>
+<b class="fc">&nbsp;            throw new ServiceUnavailableException(&quot;Database error fetching sports&quot;, ex);</b>
+&nbsp;        } catch (ServiceUnavailableException e) {
+&nbsp;            throw e;
+&nbsp;        } catch (Exception e) {
+<b class="fc">&nbsp;            logger.error(&quot;Error fetching sports&quot;, e);</b>
+<b class="fc">&nbsp;            throw new ServiceUnavailableException(&quot;Error fetching sports&quot;, e);</b>
+&nbsp;        }
+&nbsp;    }
+&nbsp;
+&nbsp;    public List&lt;TimeSlot&gt; getAllTimeSlots() {
+<b class="fc">&nbsp;        logger.info(&quot;Fetching all time slots&quot;);</b>
+&nbsp;        try {
+<b class="fc">&nbsp;            List&lt;TimeSlot&gt; timeSlots = timeSlotRepository.findAll();</b>
+<b class="fc">&nbsp;            if (timeSlots.isEmpty()) {</b>
+<b class="fc">&nbsp;                logger.warn(&quot;No time slots found&quot;);</b>
+<b class="fc">&nbsp;                throw new ServiceUnavailableException(&quot;No time slots found&quot;);</b>
+&nbsp;            }
+<b class="fc">&nbsp;            return timeSlots;</b>
+&nbsp;        } catch (org.springframework.dao.DataAccessException ex) {
+<b class="fc">&nbsp;            logger.error(&quot;Database error fetching time slots&quot;, ex);</b>
+<b class="fc">&nbsp;            throw new ServiceUnavailableException(&quot;Database error fetching time slots&quot;, ex);</b>
+&nbsp;        } catch (ServiceUnavailableException e) {
+&nbsp;            throw e;
+&nbsp;        } catch (Exception e) {
+<b class="fc">&nbsp;            logger.error(&quot;Error fetching time slots&quot;, e);</b>
+<b class="fc">&nbsp;            throw new ServiceUnavailableException(&quot;Error fetching time slots&quot;, e);</b>
+&nbsp;        }
+&nbsp;    }
+&nbsp;}
+</code>
+</pre>
+</div>
+
+<script type="text/javascript">
+(function() {
+    var msie = false, msie9 = false;
+    /*@cc_on
+      msie = true;
+      @if (@_jscript_version >= 9)
+        msie9 = true;
+      @end
+    @*/
+
+    if (!msie || msie && msie9) {
+      hljs.highlightAll()
+      hljs.initLineNumbersOnLoad();
+    }
+})();
+</script>
+
+<div class="footer">
+    
+    <div style="float:right;">generated on 2025-06-23 14:39</div>
+</div>
+</body>
+</html>
