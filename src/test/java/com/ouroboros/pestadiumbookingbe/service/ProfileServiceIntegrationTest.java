@@ -100,7 +100,7 @@ class ProfileServiceIntegrationTest {
         assertEquals("new@test.com", updated.getEmail());
     }
     @Test
-    void updateProfile_invalidUser_throwsBadRequest() {
+    void updateProfile_nonexist_throwsBadRequest() {
         Profile fake = new Profile();
         fake.setId(UUID.randomUUID());
         fake.setEmail("x@test.com");
@@ -135,7 +135,25 @@ class ProfileServiceIntegrationTest {
     }
 
     @Test
-    void deleteProfile_nonexistent_throws() {
+    void deleteProfile_nonexist_throwsBadRequest() {
         assertThrows(BadRequestException.class, () -> profileService.deleteProfile(UUID.randomUUID()));
+    }
+    @Test
+    void deleteProfile_dataAccessResourceFailure_throwsServiceUnavailable() {
+        doThrow(DataAccessResourceFailureException.class)
+                .when(profileRepository).findAndLockById(existing.getId());
+        assertThrows(ServiceUnavailableException.class, () -> profileService.deleteProfile(existing.getId()));
+    }
+    @Test
+    void deleteProfile_transactionTimeout_throwsRequestTimeout() {
+        doThrow(TransactionTimedOutException.class)
+                .when(profileRepository).findAndLockById(existing.getId());
+        assertThrows(RequestTimeoutException.class, () -> profileService.deleteProfile(existing.getId()));
+    }
+    @Test
+    void deleteProfile_genericException_throwsRuntimeException() {
+        doThrow(RuntimeException.class)
+                .when(profileRepository).findAndLockById(existing.getId());
+        assertThrows(RuntimeException.class, () -> profileService.deleteProfile(existing.getId()));
     }
 }

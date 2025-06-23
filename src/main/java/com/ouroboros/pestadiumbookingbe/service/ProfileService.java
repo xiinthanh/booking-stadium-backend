@@ -83,15 +83,12 @@ public class ProfileService {
             existing.setDeleted(true);
             profileRepository.save(existing);
             logger.info("Profile with ID: {} deleted successfully", id);
-        } catch (org.springframework.dao.DataAccessException ex) {
+        } catch (DataAccessResourceFailureException ex) {
             logger.error("Database error deleting profile with ID: {}", id, ex);
             throw new ServiceUnavailableException("Service unavailable due to database issues");
         } catch (TransactionTimedOutException ex) {
             logger.error("Transaction timed out while deleting profile with ID: {}", id, ex);
             throw new RequestTimeoutException("Request timed out while deleting profile");
-        } catch (IllegalArgumentException ex) {
-            logger.error("Invalid argument provided for profile deletion with ID: {}", id, ex);
-            throw new BadRequestException("Invalid profile ID");
         } catch (BadRequestException e) {
             throw e;
         } catch (Exception e) {

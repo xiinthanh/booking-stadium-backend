@@ -10,6 +10,7 @@ import com.ouroboros.pestadiumbookingbe.repository.TimeSlotRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -35,7 +36,7 @@ public class StadiumInfoService {
                 throw new ServiceUnavailableException("No sport halls found");
             }
             return sportHalls;
-        } catch (org.springframework.dao.DataAccessException ex) {
+        } catch (DataAccessResourceFailureException ex) {
             logger.error("Database error fetching sport halls", ex);
             throw new ServiceUnavailableException("Database error fetching sport halls", ex);
         } catch (ServiceUnavailableException e) {
@@ -55,7 +56,7 @@ public class StadiumInfoService {
                 throw new ServiceUnavailableException("No sports found");
             }
             return sports;
-        } catch (org.springframework.dao.DataAccessException ex) {
+        } catch (DataAccessResourceFailureException ex) {
             logger.error("Database error fetching sports", ex);
             throw new ServiceUnavailableException("Database error fetching sports", ex);
         } catch (ServiceUnavailableException e) {

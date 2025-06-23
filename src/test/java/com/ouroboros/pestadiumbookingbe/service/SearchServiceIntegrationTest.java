@@ -14,25 +14,28 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalTime;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.doThrow;
 
 @SpringBootTest
 @AutoConfigureTestDatabase
 @Transactional
 class SearchServiceIntegrationTest {
 
-    @Autowired
+    @MockitoSpyBean
     private SearchService searchService;
-    @Autowired
+    @MockitoSpyBean
     private SportHallRepository sportHallRepository;
-    @Autowired
+    @MockitoSpyBean
     private SportRepository sportRepository;
-    @Autowired
+    @MockitoSpyBean
     private TimeSlotRepository timeSlotRepository;
 
     private UUID hallId, slotId;
@@ -43,6 +46,7 @@ class SearchServiceIntegrationTest {
         sport.setName("Test Sport");
         sport.setActive(true);
         sportRepository.save(sport);
+
         SportHall hall = new SportHall();
         hall.setSportId(sport.getId());
         hall.setName("Hall");
@@ -50,6 +54,7 @@ class SearchServiceIntegrationTest {
         hall.setCapacity(5);
         sportHallRepository.save(hall);
         hallId = hall.getId();
+
         TimeSlot slot = new TimeSlot();
         slot.setStartTime(LocalTime.of(8, 0));
         slot.setEndTime(LocalTime.of(9, 0));
@@ -65,11 +70,25 @@ class SearchServiceIntegrationTest {
         assertNotNull(result);
         assertEquals(hallId, result.getId());
     }
-
     @Test
-    void getSportHallById_invalid_throws() {
+    void getSportHallById_invalid_throwsBadRequest() {
         assertThrows(BadRequestException.class, () -> searchService.getSportHallById(UUID.randomUUID()));
     }
+    @Test
+    void getSportHallById_dataAccessResourceFailure_throwsServiceUnavailable() {
+        doThrow(DataAccessResourceFailureException.class)
+                .when(sportHallRepository).findById(hallId);
+
+        assertThrows(ServiceUnavailableException.class, () -> searchService.getSportHallById(hallId));
+    }
+    @Test
+    void getSportHallById_genericException_throwsRuntimeException() {
+        doThrow(RuntimeException.class)
+                .when(sportHallRepository).findById(hallId);
+
+        assertThrows(RuntimeException.class, () -> searchService.getSportHallById(hallId));
+    }
+
 
     @Test
     void getTimeSlotById_valid() {
@@ -77,9 +96,22 @@ class SearchServiceIntegrationTest {
         assertNotNull(result);
         assertEquals(slotId, result.getId());
     }
-
     @Test
-    void getTimeSlotById_invalid_throws() {
+    void getTimeSlotById_invalid_throwsBadRequest() {
         assertThrows(BadRequestException.class, () -> searchService.getTimeSlotById(UUID.randomUUID()));
+    }
+    @Test
+    void getTimeSlotById_dataAccessResourceFailure_throwsServiceUnavailable() {
+        doThrow(DataAccessResourceFailureException.class)
+                .when(timeSlotRepository).findById(slotId);
+
+        assertThrows(ServiceUnavailableException.class, () -> searchService.getTimeSlotById(slotId));
+    }
+    @Test
+    void getTimeSlotById_genericException_throwsRuntimeException() {
+        doThrow(RuntimeException.class)
+                .when(timeSlotRepository).findById(slotId);
+
+        assertThrows(RuntimeException.class, () -> searchService.getTimeSlotById(slotId));
     }
 }
