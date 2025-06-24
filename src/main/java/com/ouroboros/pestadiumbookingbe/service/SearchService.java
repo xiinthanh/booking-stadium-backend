@@ -124,20 +124,60 @@ public class SearchService {
                                         Optional<SportHallLocation> locationOpt,
                                         Optional<ProfileType> profileTypeOpt,
                                         Optional<Status> statusOpt) {
-        List<Profile> users = studentId.isEmpty() ? List.of() : profileRepository.findByStudentId(studentId.orElse(null));
-        Optional<UUID> userId = users.isEmpty() ? Optional.empty() : Optional.of(users.getFirst().getId());
+        // If no filters are applied, return all bookings
+        if (studentId.isEmpty() && locationOpt.isEmpty() && profileTypeOpt.isEmpty() && statusOpt.isEmpty()) {
+            return bookingRepository.findAll();
+        }
 
-
+        // Get all bookings
         List<Booking> bookings = bookingRepository.findAll();
-        return bookings.stream()
-                .filter(b -> userId.map(id -> b.getUserId().equals(id)).orElse(true))
-                .filter(b -> statusOpt.map(s -> b.getStatus().equals(s)).orElse(true))
-                .filter(b -> locationOpt.map(loc -> sportHallRepository.findById(b.getSportHallId())
-                        .map(h -> h.getLocation().equals(loc))
-                        .orElse(false)).orElse(true))
-                .filter(b -> profileTypeOpt.map(pt -> profileRepository.findById(b.getUserId())
-                        .map(p -> p.getType().equals(pt))
-                        .orElse(false)).orElse(true))
-                .collect(Collectors.toList());
+
+        // Apply filters conditionally
+        if (studentId.isPresent() && !studentId.get().isEmpty()) {
+            String partialStudentId = studentId.get().toLowerCase();
+            List<Profile> matchingProfiles = profileRepository.findAll().stream()
+                    .filter(profile -> profile.getStudentId() != null &&
+                                      profile.getStudentId().toLowerCase().contains(partialStudentId))
+                    .collect(Collectors.toList());
+
+            if (!matchingProfiles.isEmpty()) {
+                List<UUID> matchingUserIds = matchingProfiles.stream()
+                        .map(Profile::getId)
+                        .collect(Collectors.toList());
+
+                bookings = bookings.stream()
+                        .filter(b -> matchingUserIds.contains(b.getUserId()))
+                        .collect(Collectors.toList());
+            }
+        }
+
+        if (statusOpt.isPresent()) {
+            Status status = statusOpt.get();
+            bookings = bookings.stream()
+                    .filter(b -> b.getStatus().equals(status))
+                    .collect(Collectors.toList());
+        }
+
+        if (locationOpt.isPresent()) {
+            SportHallLocation location = locationOpt.get();
+            bookings = bookings.stream()
+                    .filter(b -> {
+                        Optional<SportHall> hall = sportHallRepository.findById(b.getSportHallId());
+                        return hall.isPresent() && hall.get().getLocation().equals(location);
+                    })
+                    .collect(Collectors.toList());
+        }
+
+        if (profileTypeOpt.isPresent()) {
+            ProfileType profileType = profileTypeOpt.get();
+            bookings = bookings.stream()
+                    .filter(b -> {
+                        Optional<Profile> profile = profileRepository.findById(b.getUserId());
+                        return profile.isPresent() && profile.get().getType().equals(profileType);
+                    })
+                    .collect(Collectors.toList());
+        }
+
+        return bookings;
     }
 }
