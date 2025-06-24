@@ -5,10 +5,7 @@ import com.ouroboros.pestadiumbookingbe.exception.ConflictException;
 import com.ouroboros.pestadiumbookingbe.exception.ForbiddenException;
 import com.ouroboros.pestadiumbookingbe.exception.RequestTimeoutException;
 import com.ouroboros.pestadiumbookingbe.exception.ServiceUnavailableException;
-import com.ouroboros.pestadiumbookingbe.model.Booking;
-import com.ouroboros.pestadiumbookingbe.model.ProfileType;
-import com.ouroboros.pestadiumbookingbe.model.SportHallLocation;
-import com.ouroboros.pestadiumbookingbe.model.Status;
+import com.ouroboros.pestadiumbookingbe.model.*;
 import com.ouroboros.pestadiumbookingbe.notifier.BookingNotificationType;
 import com.ouroboros.pestadiumbookingbe.repository.BookingRepository;
 import com.ouroboros.pestadiumbookingbe.repository.ProfileRepository;
@@ -457,13 +454,17 @@ public class BookingService {
     }
 
     @Transactional(readOnly = true)
-    public List<Booking> filterBookings(Optional<UUID> userIdOpt,
+    public List<Booking> filterBookings(Optional<String> studentId,
                                         Optional<SportHallLocation> locationOpt,
                                         Optional<ProfileType> profileTypeOpt,
                                         Optional<Status> statusOpt) {
+        List<Profile> users = studentId.isEmpty() ? List.of() : profileRepository.findByStudentId(studentId.orElse(null));
+        Optional<UUID> userId = users.isEmpty() ? Optional.empty() : Optional.of(users.getFirst().getId());
+
+
         List<Booking> bookings = bookingRepository.findAll();
         return bookings.stream()
-                .filter(b -> userIdOpt.map(id -> b.getUserId().equals(id)).orElse(true))
+                .filter(b -> userId.map(id -> b.getUserId().equals(id)).orElse(true))
                 .filter(b -> statusOpt.map(s -> b.getStatus().equals(s)).orElse(true))
                 .filter(b -> locationOpt.map(loc -> sportHallRepository.findById(b.getSportHallId())
                         .map(h -> h.getLocation().equals(loc))
