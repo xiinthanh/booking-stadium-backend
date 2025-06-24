@@ -55,6 +55,10 @@ public class BookingController {
             @RequestParam UUID canceledBy,
             @AuthenticationPrincipal UserPrincipal principal) {
 
+        if (!principal.getUserId().equals(canceledBy)) {
+            throw new ForbiddenException("Inconsistent user id.");
+        }
+
         Booking booking = bookingService.getBookingById(bookingId);
         if (!booking.getUserId().equals(principal.getUserId()) && !hasAdminRole(principal)) {
             throw new ForbiddenException("You can only cancel your own bookings.");
@@ -78,8 +82,8 @@ public class BookingController {
             @RequestBody BookingRequest bookingRequest,
             @AuthenticationPrincipal UserPrincipal principal) {
 
-        if (!principal.getUserId().equals(modifiedByUserId) || !principal.getUserId().equals(bookingRequest.getUserId())) {
-            throw new ForbiddenException("You can only modify your own bookings.");
+        if (!principal.getUserId().equals(modifiedByUserId)) {
+            throw new ForbiddenException("Inconsistent user id.");
         }
 
         Booking booking = bookingService.getBookingById(bookingId);
@@ -105,9 +109,13 @@ public class BookingController {
             @RequestParam UUID bookingId,
             @RequestParam UUID deletedBy,
             @AuthenticationPrincipal UserPrincipal principal) {
+
+        if (!principal.getUserId().equals(deletedBy)) {
+            throw new ForbiddenException("Inconsistent user id.");
+        }
+
         Booking booking = bookingService.getBookingById(bookingId);
-        if ((!booking.getUserId().equals(principal.getUserId()) || !deletedBy.equals(principal.getUserId())) &&
-                !hasAdminRole(principal)) {
+        if (!booking.getUserId().equals(principal.getUserId()) && !hasAdminRole(principal)) {
             throw new ForbiddenException("You can only delete your own bookings.");
         }
 
