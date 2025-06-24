@@ -195,6 +195,12 @@ public class BookingService {
                 throw new BadRequestException("Only pending/rejected bookings can be confirmed.");
             }
 
+            if (booking.getStatus() == Status.rejected) {  // must check quota for confirming a rejected booking
+                if (quotaExceeded(booking.getUserId(), booking.getBookingDate())) {
+                    throw new ForbiddenException("Quota exceeded for the user on the booking date.");
+                }
+            }
+
             // Update booking status
             booking.setStatus(Status.confirmed);
             booking.setUpdatedAt(OffsetDateTime.now());

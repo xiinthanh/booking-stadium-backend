@@ -310,6 +310,19 @@ class BookingServiceTest {
     }
 
     @Test
+    void confirmBooking_confirmRejectedBookingExceedsQuota_throwsForbidden() {
+        Booking b = bookingService.createBooking(userId, hallId, sportId, date, slotId, "purpose");
+        bookingService.cancelBooking(b.getId(), userId); // cancel first
+        Booking c = bookingService.createBooking(userId, hallId, sportId, date, slotId, "another purpose");
+        // 1 spot (hallId, date, slotId) - 2 bookings (b - rejected, c - pending)
+
+        // Now try to confirm the canceled booking which exceeds quota
+        assertThrows(ForbiddenException.class, () ->
+            bookingService.confirmBooking(b.getId(), userId)
+        );
+    }
+
+    @Test
     void confirmBooking_dataAccessException_throwsServiceUnavailable() {
         Booking b = bookingService.createBooking(userId, hallId, sportId, date, slotId, "purpose");
         doThrow(new DataAccessResourceFailureException("Database error"))

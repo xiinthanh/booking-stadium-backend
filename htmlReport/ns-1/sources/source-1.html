@@ -53,18 +53,18 @@ Current scope:     <a href="../../index.html">all classes</a>
 </td>
 <td class="coverageStat">
   <span class="percent">
-    95.2%
+    95.4%
   </span>
   <span class="absValue">
-    (99/104)
+    (103/108)
   </span>
 </td>
 <td class="coverageStat">
   <span class="percent">
-    97.6%
+    97.7%
   </span>
   <span class="absValue">
-    (206/211)
+    (209/214)
   </span>
 </td>
 </tr>
@@ -178,18 +178,18 @@ Current scope:     <a href="../../index.html">all classes</a>
 </td>
 <td class="coverageStat">
   <span class="percent">
-    95.2%
+    95.4%
   </span>
   <span class="absValue">
-    (99/104)
+    (103/108)
   </span>
 </td>
 <td class="coverageStat">
   <span class="percent">
-    97.7%
+    97.8%
   </span>
   <span class="absValue">
-    (216/221)
+    (219/224)
   </span>
 </td>
 </tr>
@@ -395,6 +395,12 @@ Current scope:     <a href="../../index.html">all classes</a>
 <b class="fc">&nbsp;            if (booking.getStatus() != Status.pending &amp;&amp; booking.getStatus() != Status.rejected) {</b>
 <b class="fc">&nbsp;                logger.error(&quot;Booking with ID: {} is not in pending/rejected status. Current status: {}&quot;, bookingId, booking.getStatus());</b>
 <b class="fc">&nbsp;                throw new BadRequestException(&quot;Only pending/rejected bookings can be confirmed.&quot;);</b>
+&nbsp;            }
+&nbsp;
+<b class="fc">&nbsp;            if (booking.getStatus() == Status.rejected) {  // must check quota for confirming a rejected booking</b>
+<b class="fc">&nbsp;                if (quotaExceeded(booking.getUserId(), booking.getBookingDate())) {</b>
+<b class="fc">&nbsp;                    throw new ForbiddenException(&quot;Quota exceeded for the user on the booking date.&quot;);</b>
+&nbsp;                }
 &nbsp;            }
 &nbsp;
 &nbsp;            // Update booking status
@@ -693,7 +699,7 @@ Current scope:     <a href="../../index.html">all classes</a>
 
 <div class="footer">
     
-    <div style="float:right;">generated on 2025-06-24 12:01</div>
+    <div style="float:right;">generated on 2025-06-24 17:24</div>
 </div>
 </body>
 </html>
