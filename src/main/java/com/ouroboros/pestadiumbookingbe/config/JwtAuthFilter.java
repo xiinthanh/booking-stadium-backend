@@ -56,7 +56,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
 
         String jwtToken = authHeader.substring("Bearer ".length());
-        logger.info("JWT Token: {}", jwtToken);
         try {
             Key key = Keys.hmacShaKeyFor(jwtSecret.getBytes()); // Ensure the secret is properly encoded
             Claims claims = Jwts.parserBuilder()
@@ -88,7 +87,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     authorities
             );
 
-            logger.info("JWT Claims: {}", claims);
             logger.info("Authenticated user: {}", userPrincipal.getUsername());
             logger.info("User role: {}", role);
 
