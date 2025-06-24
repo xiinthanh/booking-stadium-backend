@@ -2,24 +2,25 @@ package com.ouroboros.pestadiumbookingbe.service;
 
 import com.ouroboros.pestadiumbookingbe.exception.BadRequestException;
 import com.ouroboros.pestadiumbookingbe.exception.ServiceUnavailableException;
-import com.ouroboros.pestadiumbookingbe.model.Sport;
-import com.ouroboros.pestadiumbookingbe.model.SportHall;
-import com.ouroboros.pestadiumbookingbe.model.TimeSlot;
-import com.ouroboros.pestadiumbookingbe.repository.SportHallRepository;
-import com.ouroboros.pestadiumbookingbe.repository.SportRepository;
-import com.ouroboros.pestadiumbookingbe.repository.TimeSlotRepository;
+import com.ouroboros.pestadiumbookingbe.model.*;
+import com.ouroboros.pestadiumbookingbe.repository.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 
 @SpringBootTest
@@ -27,7 +28,7 @@ import static org.mockito.Mockito.doThrow;
 @Transactional
 class SearchServiceTest {
 
-    @MockitoSpyBean
+    @Autowired
     private SearchService searchService;
     @MockitoSpyBean
     private SportHallRepository sportHallRepository;
@@ -35,31 +36,96 @@ class SearchServiceTest {
     private SportRepository sportRepository;
     @MockitoSpyBean
     private TimeSlotRepository timeSlotRepository;
+    @MockitoSpyBean
+    private ProfileRepository profileRepository;
+    @MockitoSpyBean
+    private BookingRepository bookingRepository;
 
-    private UUID hallId, slotId;
+    @Autowired
+    private BookingService bookingService;
+
+    UUID userId, hallId, slotId, sportId;
+    UUID otherUserId, otherHallId, otherSlotId, otherSportId;
+    LocalDate date, otherDate;
+    UUID adminId;
+
+    String studentId = "12345678";
+    String otherStudentId = "87654321";
 
     @BeforeEach
     void setup() {
-        Sport sport = new Sport();
-        sport.setName("Test Sport");
-        sport.setActive(true);
-        sportRepository.save(sport);
+        // persist Sport
+        Sport s = new Sport();
+        s.setName("Test Sport");
+        s.setActive(true);
+        sportRepository.save(s);
+        sportId = s.getId();
 
-        SportHall hall = new SportHall();
-        hall.setSportId(sport.getId());
-        hall.setName("Hall");
-        hall.setLocation(com.ouroboros.pestadiumbookingbe.model.SportHallLocation.indoor);
-        hall.setCapacity(5);
-        sportHallRepository.save(hall);
-        hallId = hall.getId();
+        Sport otherS = new Sport();
+        otherS.setName("Other Sport");
+        otherS.setActive(true);
+        sportRepository.save(otherS);
+        otherSportId = otherS.getId();
 
-        TimeSlot slot = new TimeSlot();
-        slot.setStartTime(LocalTime.of(8, 0));
-        slot.setEndTime(LocalTime.of(9, 0));
-        slot.setDurationMinutes(60);
-        slot.setActive(true);
-        timeSlotRepository.save(slot);
-        slotId = slot.getId();
+        // persist profile
+        Profile p = new Profile();
+        p.setEmail("12345678@vgu.edu.vn");
+        p.setStudentId(studentId);
+        p.setType(ProfileType.user);
+        profileRepository.save(p);
+        userId = p.getId();
+
+        Profile otherP = new Profile();
+        otherP.setEmail("87654321@vgu.edu.vn");
+        otherP.setStudentId(otherStudentId);
+        otherP.setType(ProfileType.user);
+        profileRepository.save(otherP);
+        otherUserId = otherP.getId();
+
+        Profile admin = new Profile();
+        admin.setEmail("admin@example.com");
+        admin.setStudentId("admin123");
+        admin.setType(ProfileType.admin);
+        profileRepository.save(admin);
+        adminId = admin.getId();
+
+        // persist sport hall
+        SportHall h = new SportHall();
+        h.setSportId(sportId);
+        h.setName("Test Hall");
+        h.setLocation(SportHallLocation.indoor);
+        h.setCapacity(10);
+        sportHallRepository.save(h);
+        hallId = h.getId();
+
+        SportHall otherH = new SportHall();
+        otherH.setSportId(otherSportId);
+        otherH.setName("Other Hall");
+        otherH.setLocation(SportHallLocation.outdoor);
+        otherH.setCapacity(20);
+        sportHallRepository.save(otherH);
+        otherHallId = otherH.getId();
+
+        // persist time slot
+        TimeSlot t = new TimeSlot();
+        t.setStartTime(LocalTime.of(9, 0));
+        t.setEndTime(LocalTime.of(10, 0));
+        t.setDurationMinutes(60);
+        t.setActive(true);
+        timeSlotRepository.save(t);
+        slotId = t.getId();
+
+        TimeSlot otherT = new TimeSlot();
+        otherT.setStartTime(LocalTime.of(10, 0));
+        otherT.setEndTime(LocalTime.of(11, 0));
+        otherT.setDurationMinutes(60);
+        otherT.setActive(true);
+        timeSlotRepository.save(otherT);
+        otherSlotId = otherT.getId();
+
+        // Set dates for testing
+        date = LocalDate.now().plusDays(1);
+        otherDate = LocalDate.now().plusDays(2);
     }
 
     @Test
@@ -111,5 +177,199 @@ class SearchServiceTest {
                 .when(timeSlotRepository).findById(slotId);
 
         assertThrows(RuntimeException.class, () -> searchService.getTimeSlotById(slotId));
+    }
+
+
+    @Test
+    void getAllBookings_returnsAllBookings() {
+        // Clear any existing bookings first
+        bookingRepository.deleteAll();
+
+        // Create several bookings
+        bookingService.createBooking(userId, hallId, sportId,
+                date, slotId, "first");
+        bookingService.createBooking(otherUserId, otherHallId, otherSportId,
+                otherDate, otherSlotId, "second");
+
+        List<Booking> bookings = searchService.getAllBookings();
+        assertEquals(2, bookings.size());
+    }
+
+    @Test
+    void getAllBookings_dataAccessResourceFailureException_throwsServiceUnavailable() {
+        doThrow(new DataAccessResourceFailureException("Database error"))
+                .when(bookingRepository).findAll();
+
+        assertThrows(ServiceUnavailableException.class, () ->
+                searchService.getAllBookings()
+        );
+    }
+
+    @Test
+    void getAllBookings_genericException_throwsRuntimeException() {
+        doThrow(new RuntimeException("Unexpected error"))
+                .when(bookingRepository).findAll();
+
+        assertThrows(RuntimeException.class, () ->
+                searchService.getAllBookings()
+        );
+    }
+
+    @Test
+    void getBookingById_validId_returnsBooking() {
+        Booking p = bookingService.createBooking(userId, hallId, sportId,
+                date, slotId, "purpose");
+
+        Booking found = searchService.getBookingById(p.getId());
+        assertNotNull(found);
+        assertEquals(p.getId(), found.getId());
+    }
+
+    @Test
+    void getBookingById_invalidId_throwsBadRequest() {
+        assertThrows(BadRequestException.class, () ->
+                searchService.getBookingById(UUID.randomUUID())
+        );
+    }
+
+    @Test
+    void getBookingById_dataAccessResourceFailureException_throwsServiceUnavailable() {
+        doThrow(new DataAccessResourceFailureException("Database error"))
+                .when(bookingRepository).findById(any(UUID.class));
+
+        assertThrows(ServiceUnavailableException.class, () ->
+                searchService.getBookingById(UUID.randomUUID())
+        );
+    }
+
+    @Test
+    void getBookingById_genericException_throwsRuntimeException() {
+        doThrow(new RuntimeException("Unexpected error"))
+                .when(bookingRepository).findById(any(UUID.class));
+
+        assertThrows(RuntimeException.class, () ->
+                searchService.getBookingById(UUID.randomUUID())
+        );
+    }
+
+    @Test
+    void getBookingsByUserId_existingUser_returnsUserBookings() {
+        // Clear any existing bookings
+        bookingRepository.deleteAll();
+
+        // Create booking for our test user
+        bookingService.createBooking(userId, hallId, sportId,
+                date, slotId, "mine");
+
+        bookingService.createBooking(otherUserId, otherHallId, otherSportId,
+                otherDate, slotId, "theirs");
+
+        // User should only see their own booking
+        List<Booking> userBookings = searchService.getBookingsByUserId(userId);
+        assertEquals(1, userBookings.size());
+        assertEquals("mine", userBookings.getFirst().getPurpose());
+
+        // Other user should only see their booking
+        List<Booking> otherBookings = searchService.getBookingsByUserId(otherUserId);
+        assertEquals(1, otherBookings.size());
+        assertEquals("theirs", otherBookings.getFirst().getPurpose());
+    }
+
+    @Test
+    void getBookingsByUserId_invalidUser_throwsBadRequest() {
+        assertThrows(BadRequestException.class, () ->
+                searchService.getBookingsByUserId(UUID.randomUUID())
+        );
+    }
+
+    @Test
+    void getBookingsByUserId_dataAccessResourceFailureException_throwsServiceUnavailable() {
+        doThrow(new DataAccessResourceFailureException("Database error"))
+                .when(profileRepository).findById(any(UUID.class));
+
+        assertThrows(ServiceUnavailableException.class, () ->
+                searchService.getBookingsByUserId(userId)
+        );
+    }
+
+    @Test
+    void getBookingsByUserId_genericException_throwsRuntimeException() {
+        doThrow(new RuntimeException("Unexpected error"))
+                .when(profileRepository).findById(any(UUID.class));
+
+        assertThrows(RuntimeException.class, () ->
+                searchService.getBookingsByUserId(userId)
+        );
+    }
+
+    @Test
+    void filterBookings_noFilters_returnsAllBookings() {
+        Booking b1 = bookingService.createBooking(userId, hallId, sportId, date, slotId, "p1");
+        Booking b2 = bookingService.createBooking(otherUserId, otherHallId, otherSportId, otherDate, otherSlotId, "p2");
+        List<Booking> result = searchService.filterBookings(Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty());
+        assertEquals(2, result.size());
+        assertTrue(result.stream().map(Booking::getId).toList().containsAll(List.of(b1.getId(), b2.getId())));
+    }
+
+    @Test
+    void filterBookings_byUserId() {
+        Booking b1 = bookingService.createBooking(userId, hallId, sportId, date, slotId, "p1");
+        Booking b2 = bookingService.createBooking(userId, otherHallId, otherSportId, otherDate, otherSlotId, "p2");
+        bookingService.createBooking(otherUserId, otherHallId, otherSportId, date, slotId, "p3");
+        List<Booking> result = searchService.filterBookings(Optional.of(studentId), Optional.empty(), Optional.empty(), Optional.empty());
+        assertEquals(2, result.size());
+        assertEquals(userId, result.getFirst().getUserId());
+    }
+
+    @Test
+    void filterBookings_byStatus() {
+        Booking b1 = bookingService.createBooking(userId, hallId, sportId, date, slotId, "p1");
+        Booking b2 = bookingService.createBooking(otherUserId, otherHallId, sportId, date, slotId, "p2");
+        bookingService.confirmBooking(b2.getId(), adminId);
+        List<Booking> pending = searchService.filterBookings(Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(Status.pending));
+        List<Booking> confirmed = searchService.filterBookings(Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(Status.confirmed));
+        assertEquals(1, pending.size());
+        assertEquals(b1.getId(), pending.getFirst().getId());
+        assertEquals(1, confirmed.size());
+        assertEquals(b2.getId(), confirmed.getFirst().getId());
+    }
+
+    @Test
+    void filterBookings_byLocation() {
+        Booking b1 = bookingService.createBooking(userId, hallId, sportId, date, slotId, "p1");
+        Booking b2 = bookingService.createBooking(otherUserId, otherHallId, sportId, date, slotId, "p2");
+        List<Booking> indoor = searchService.filterBookings(Optional.empty(), Optional.of(SportHallLocation.indoor), Optional.empty(), Optional.empty());
+        List<Booking> outdoor = searchService.filterBookings(Optional.empty(), Optional.of(SportHallLocation.outdoor), Optional.empty(), Optional.empty());
+        assertEquals(1, indoor.size());
+        assertEquals(hallId, indoor.getFirst().getSportHallId());
+        assertEquals(1, outdoor.size());
+        assertEquals(otherHallId, outdoor.getFirst().getSportHallId());
+    }
+
+    @Test
+    void filterBookings_byProfileType() {
+        Booking b1 = bookingService.createBooking(userId, hallId, sportId, date, slotId, "p1");
+        Booking b2 = bookingService.createBooking(adminId, otherHallId, sportId, date, slotId, "p2");
+        List<Booking> users = searchService.filterBookings(Optional.empty(), Optional.empty(), Optional.of(ProfileType.user), Optional.empty());
+        List<Booking> admins = searchService.filterBookings(Optional.empty(), Optional.empty(), Optional.of(ProfileType.admin), Optional.empty());
+        assertEquals(1, users.size());
+        assertEquals(userId, users.getFirst().getUserId());
+        assertEquals(1, admins.size());
+        assertEquals(adminId, admins.getFirst().getUserId());
+    }
+
+    @Test
+    void filterBookings_combinedFilters() {
+        Booking b1 = bookingService.createBooking(userId, hallId, sportId, date, slotId, "p1");
+        Booking b2 = bookingService.createBooking(userId, otherHallId, otherSportId, otherDate, otherSlotId, "p2");
+        bookingService.confirmBooking(b2.getId(), adminId);
+        List<Booking> result = searchService.filterBookings(
+                Optional.of(studentId),
+                Optional.of(SportHallLocation.outdoor),
+                Optional.of(ProfileType.user),
+                Optional.of(Status.confirmed)
+        );
+        assertEquals(1, result.size());
+        assertEquals(b2.getId(), result.getFirst().getId());
     }
 }

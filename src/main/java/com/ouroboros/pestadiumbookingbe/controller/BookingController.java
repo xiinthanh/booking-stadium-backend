@@ -8,6 +8,7 @@ import com.ouroboros.pestadiumbookingbe.model.Booking;
 import com.ouroboros.pestadiumbookingbe.model.SportHallLocation;
 import com.ouroboros.pestadiumbookingbe.model.ProfileType;
 import com.ouroboros.pestadiumbookingbe.model.Status;
+import com.ouroboros.pestadiumbookingbe.service.SearchService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +28,8 @@ public class BookingController {
 
     @Autowired
     private BookingService bookingService;
+    @Autowired
+    private SearchService searchService;
 
     private static final Logger logger = LoggerFactory.getLogger(BookingController.class);
 
@@ -59,7 +62,7 @@ public class BookingController {
             throw new ForbiddenException("Inconsistent user id.");
         }
 
-        Booking booking = bookingService.getBookingById(bookingId);
+        Booking booking = searchService.getBookingById(bookingId);
         if (!booking.getUserId().equals(principal.getUserId()) && !hasAdminRole(principal)) {
             throw new ForbiddenException("You can only cancel your own bookings.");
         }
@@ -86,7 +89,7 @@ public class BookingController {
             throw new ForbiddenException("Inconsistent user id.");
         }
 
-        Booking booking = bookingService.getBookingById(bookingId);
+        Booking booking = searchService.getBookingById(bookingId);
         if (!booking.getUserId().equals(principal.getUserId()) && !hasAdminRole(principal)) {
             throw new ForbiddenException("You can only modify your own bookings.");
         }
@@ -114,7 +117,7 @@ public class BookingController {
             throw new ForbiddenException("Inconsistent user id.");
         }
 
-        Booking booking = bookingService.getBookingById(bookingId);
+        Booking booking = searchService.getBookingById(bookingId);
         if (!booking.getUserId().equals(principal.getUserId()) && !hasAdminRole(principal)) {
             throw new ForbiddenException("You can only delete your own bookings.");
         }
@@ -125,20 +128,20 @@ public class BookingController {
 
     @GetMapping("/get-bookings")
     public ResponseEntity<List<Booking>> getAllBookings() {
-        List<Booking> bookings = bookingService.getAllBookings();
+        List<Booking> bookings = searchService.getAllBookings();
         return ResponseEntity.ok(bookings);
     }
 
     @GetMapping("/get-booking/{id}")
     public ResponseEntity<Booking> getBookingById(@PathVariable UUID id) {
-        Booking booking = bookingService.getBookingById(id);
+        Booking booking = searchService.getBookingById(id);
         return ResponseEntity.ok(booking);
     }
 
     @PreAuthorize("hasRole('ADMIN') or principal.userId == #userId")
     @GetMapping("/get-bookings-by-user/{userId}")
     public ResponseEntity<List<Booking>> getBookingsByUserId(@PathVariable UUID userId) {
-        List<Booking> bookings = bookingService.getBookingsByUserId(userId);
+        List<Booking> bookings = searchService.getBookingsByUserId(userId);
         return ResponseEntity.ok(bookings);
     }
 
@@ -150,7 +153,7 @@ public class BookingController {
             @RequestParam(required = false) ProfileType profileType,
             @RequestParam(required = false) Status status) {
         try {
-            List<Booking> bookings = bookingService.filterBookings(
+            List<Booking> bookings = searchService.filterBookings(
                 Optional.ofNullable(studentId),
                 Optional.ofNullable(location),
                 Optional.ofNullable(profileType),
