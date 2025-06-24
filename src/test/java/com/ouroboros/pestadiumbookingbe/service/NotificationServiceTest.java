@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @AutoConfigureTestDatabase
-class NotificationServiceIntegrationTest {
+class NotificationServiceTest {
 
     @Autowired
     private NotificationService notificationService;

@@ -8,7 +8,6 @@ import com.ouroboros.pestadiumbookingbe.model.ProfileType;
 import com.ouroboros.pestadiumbookingbe.repository.ProfileRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataAccessResourceFailureException;
@@ -25,7 +24,7 @@ import static org.mockito.Mockito.doThrow;
 @SpringBootTest
 @AutoConfigureTestDatabase
 @Transactional
-class ProfileServiceIntegrationTest {
+class ProfileServiceTest {
 
     @MockitoSpyBean
     private ProfileService profileService;
@@ -155,5 +154,78 @@ class ProfileServiceIntegrationTest {
         doThrow(RuntimeException.class)
                 .when(profileRepository).findAndLockById(existing.getId());
         assertThrows(RuntimeException.class, () -> profileService.deleteProfile(existing.getId()));
+    }
+
+    @Test
+    void promoteToAdmin_valid() {
+        Profile promoted = profileService.promoteToAdmin(existing.getId());
+        assertEquals(ProfileType.admin, promoted.getType());
+    }
+    @Test
+    void promoteToAdmin_nonexist_throwsBadRequest() {
+        assertThrows(BadRequestException.class, () -> profileService.promoteToAdmin(UUID.randomUUID()));
+    }
+   @Test
+   void promoteToAdmin_alreadyAdmin_doNothing() {
+        // manually set existing profile to admin
+        existing.setType(ProfileType.admin);
+        profileRepository.save(existing);
+
+        profileService.promoteToAdmin(existing.getId());
+
+        assertEquals(ProfileType.admin, existing.getType());
+    }
+    @Test
+    void promoteToAdmin_dataAccessResourceFailure_throwsServiceUnavailable() {
+        doThrow(DataAccessResourceFailureException.class)
+                .when(profileRepository).findAndLockById(existing.getId());
+        assertThrows(ServiceUnavailableException.class, () -> profileService.promoteToAdmin(existing.getId()));
+    }
+    @Test
+    void promoteToAdmin_transactionTimeout_throwsRequestTimeout() {
+        doThrow(TransactionTimedOutException.class)
+                .when(profileRepository).findAndLockById(existing.getId());
+        assertThrows(RequestTimeoutException.class, () -> profileService.promoteToAdmin(existing.getId()));
+    }
+    @Test
+    void promoteToAdmin_genericException_throwsRuntimeException() {
+        doThrow(RuntimeException.class)
+                .when(profileRepository).findAndLockById(existing.getId());
+        assertThrows(RuntimeException.class, () -> profileService.promoteToAdmin(existing.getId()));
+    }
+
+    @Test
+    void demoteFromAdmin_valid() {
+        existing.setType(ProfileType.admin);
+        profileRepository.save(existing);
+        Profile demoted = profileService.demoteFromAdmin(existing.getId());
+        assertEquals(ProfileType.user, demoted.getType());
+    }
+    @Test
+    void demoteFromAdmin_nonexist_throwsBadRequest() {
+        assertThrows(BadRequestException.class, () -> profileService.demoteFromAdmin(UUID.randomUUID()));
+    }
+    @Test
+    void demoteFromAdmin_notAdmin_doNothing() {
+        profileService.demoteFromAdmin(existing.getId());
+        assertEquals(ProfileType.user, existing.getType());
+    }
+    @Test
+    void demoteFromAdmin_dataAccessResourceFailure_throwsServiceUnavailable() {
+        doThrow(DataAccessResourceFailureException.class)
+                .when(profileRepository).findAndLockById(existing.getId());
+        assertThrows(ServiceUnavailableException.class, () -> profileService.demoteFromAdmin(existing.getId()));
+    }
+    @Test
+    void demoteFromAdmin_transactionTimeout_throwsRequestTimeout() {
+        doThrow(TransactionTimedOutException.class)
+                .when(profileRepository).findAndLockById(existing.getId());
+        assertThrows(RequestTimeoutException.class, () -> profileService.demoteFromAdmin(existing.getId()));
+    }
+    @Test
+    void demoteFromAdmin_genericException_throwsRuntimeException() {
+        doThrow(RuntimeException.class)
+                .when(profileRepository).findAndLockById(existing.getId());
+        assertThrows(RuntimeException.class, () -> profileService.demoteFromAdmin(existing.getId()));
     }
 }

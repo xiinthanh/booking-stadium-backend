@@ -8,10 +8,8 @@ import com.ouroboros.pestadiumbookingbe.model.TimeSlot;
 import com.ouroboros.pestadiumbookingbe.repository.SportHallRepository;
 import com.ouroboros.pestadiumbookingbe.repository.SportRepository;
 import com.ouroboros.pestadiumbookingbe.repository.TimeSlotRepository;
-import com.ouroboros.pestadiumbookingbe.service.SearchService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataAccessResourceFailureException;
@@ -27,7 +25,7 @@ import static org.mockito.Mockito.doThrow;
 @SpringBootTest
 @AutoConfigureTestDatabase
 @Transactional
-class SearchServiceIntegrationTest {
+class SearchServiceTest {
 
     @MockitoSpyBean
     private SearchService searchService;

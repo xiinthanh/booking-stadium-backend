@@ -2,6 +2,7 @@ package com.ouroboros.pestadiumbookingbe.service;
 
 import com.ouroboros.pestadiumbookingbe.exception.*;
 import com.ouroboros.pestadiumbookingbe.model.*;
+import com.ouroboros.pestadiumbookingbe.notifier.BookingNotificationType;
 import com.ouroboros.pestadiumbookingbe.repository.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,20 +13,24 @@ import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.transaction.TransactionTimedOutException;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.times;
 
 @SpringBootTest
 @AutoConfigureTestDatabase
 @Transactional
-class BookingServiceIntegrationTest {
+class BookingServiceTest {
 
     @Autowired BookingService bookingService;
     @MockitoSpyBean BookingRepository bookingRepository;
@@ -33,6 +38,7 @@ class BookingServiceIntegrationTest {
     @MockitoSpyBean SportHallRepository sportHallRepository;
     @MockitoSpyBean TimeSlotRepository timeSlotRepository;
     @MockitoSpyBean SportRepository sportRepository;
+    @MockitoSpyBean NotificationService notificationService;
 
     UUID userId, hallId, slotId, sportId;
     UUID otherUserId, otherHallId, otherSlotId, otherSportId;
@@ -881,4 +887,98 @@ class BookingServiceIntegrationTest {
             bookingService.getBookingsByUserId(userId)
         );
     }
+
+    @Test
+    void filterBookings_noFilters_returnsAllBookings() {
+        Booking b1 = bookingService.createBooking(userId, hallId, sportId, date, slotId, "p1");
+        Booking b2 = bookingService.createBooking(otherUserId, otherHallId, otherSportId, otherDate, otherSlotId, "p2");
+        List<Booking> result = bookingService.filterBookings(Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty());
+        assertEquals(2, result.size());
+        assertTrue(result.stream().map(Booking::getId).toList().containsAll(List.of(b1.getId(), b2.getId())));
+    }
+
+    @Test
+    void filterBookings_byUserId() {
+        Booking b1 = bookingService.createBooking(userId, hallId, sportId, date, slotId, "p1");
+        Booking b2 = bookingService.createBooking(userId, otherHallId, otherSportId, otherDate, otherSlotId, "p2");
+        bookingService.createBooking(otherUserId, otherHallId, otherSportId, date, slotId, "p3");
+        List<Booking> result = bookingService.filterBookings(Optional.of(userId), Optional.empty(), Optional.empty(), Optional.empty());
+        assertEquals(2, result.size());
+        assertEquals(userId, result.getFirst().getUserId());
+    }
+
+    @Test
+    void filterBookings_byStatus() {
+        Booking b1 = bookingService.createBooking(userId, hallId, sportId, date, slotId, "p1");
+        Booking b2 = bookingService.createBooking(otherUserId, otherHallId, sportId, date, slotId, "p2");
+        bookingService.confirmBooking(b2.getId(), adminId);
+        List<Booking> pending = bookingService.filterBookings(Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(Status.pending));
+        List<Booking> confirmed = bookingService.filterBookings(Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(Status.confirmed));
+        assertEquals(1, pending.size());
+        assertEquals(b1.getId(), pending.getFirst().getId());
+        assertEquals(1, confirmed.size());
+        assertEquals(b2.getId(), confirmed.getFirst().getId());
+    }
+
+    @Test
+    void filterBookings_byLocation() {
+        Booking b1 = bookingService.createBooking(userId, hallId, sportId, date, slotId, "p1");
+        Booking b2 = bookingService.createBooking(otherUserId, otherHallId, sportId, date, slotId, "p2");
+        List<Booking> indoor = bookingService.filterBookings(Optional.empty(), Optional.of(SportHallLocation.indoor), Optional.empty(), Optional.empty());
+        List<Booking> outdoor = bookingService.filterBookings(Optional.empty(), Optional.of(SportHallLocation.outdoor), Optional.empty(), Optional.empty());
+        assertEquals(1, indoor.size());
+        assertEquals(hallId, indoor.getFirst().getSportHallId());
+        assertEquals(1, outdoor.size());
+        assertEquals(otherHallId, outdoor.getFirst().getSportHallId());
+    }
+
+    @Test
+    void filterBookings_byProfileType() {
+        Booking b1 = bookingService.createBooking(userId, hallId, sportId, date, slotId, "p1");
+        Booking b2 = bookingService.createBooking(adminId, otherHallId, sportId, date, slotId, "p2");
+        List<Booking> users = bookingService.filterBookings(Optional.empty(), Optional.empty(), Optional.of(ProfileType.user), Optional.empty());
+        List<Booking> admins = bookingService.filterBookings(Optional.empty(), Optional.empty(), Optional.of(ProfileType.admin), Optional.empty());
+        assertEquals(1, users.size());
+        assertEquals(userId, users.getFirst().getUserId());
+        assertEquals(1, admins.size());
+        assertEquals(adminId, admins.getFirst().getUserId());
+    }
+
+    @Test
+    void filterBookings_combinedFilters() {
+        Booking b1 = bookingService.createBooking(userId, hallId, sportId, date, slotId, "p1");
+        Booking b2 = bookingService.createBooking(userId, otherHallId, otherSportId, otherDate, otherSlotId, "p2");
+        bookingService.confirmBooking(b2.getId(), adminId);
+        List<Booking> result = bookingService.filterBookings(
+                Optional.of(userId),
+                Optional.of(SportHallLocation.outdoor),
+                Optional.of(ProfileType.user),
+                Optional.of(Status.confirmed)
+        );
+        assertEquals(1, result.size());
+        assertEquals(b2.getId(), result.getFirst().getId());
+    }
+
+//    @Test
+//    void createBooking_triggersNotification() {
+//        Booking b = bookingService.createBooking(userId, hallId, sportId, date, slotId, "newBooking");
+//        verify(notificationService, times(1))
+//            .notifyOnBookingChange(b, BookingNotificationType.CREATION);
+//    }
+//
+//    @Test
+//    void confirmBooking_triggersNotification() {
+//        Booking b = bookingService.createBooking(userId, hallId, sportId, date, slotId, "notifyTest");
+//        bookingService.confirmBooking(b.getId(), adminId);
+//        verify(notificationService, times(1))
+//            .notifyOnBookingChange(b, BookingNotificationType.CONFIRMATION);
+//    }
+//
+//    @Test
+//    void cancelBooking_triggersNotification() {
+//        Booking b = bookingService.createBooking(userId, hallId, sportId, date, slotId, "toCancel");
+//        bookingService.cancelBooking(b.getId(), userId);
+//        verify(notificationService, times(1))
+//            .notifyOnBookingChange(b, BookingNotificationType.CANCELLATION);
+//    }
 }
