@@ -115,40 +115,13 @@ public class ProfileService {
                 logger.info("Promoting profile with ID: {} to admin", id);
                 profile.setType(ProfileType.admin);
             }
-            profile.setType(ProfileType.admin);
-            return profileRepository.save(profile);
-        } catch (DataAccessResourceFailureException ex) {
-            logger.error("Database error promoting profile with ID: {}", id, ex);
-            throw new ServiceUnavailableException("Service unavailable due to database issues");
-        } catch (TransactionTimedOutException ex) {
-            logger.error("Transaction timed out while promoting profile with ID: {}", id, ex);
-            throw new RequestTimeoutException("Request timed out while promoting profile");
-        } catch (BadRequestException e) {
-            throw e;
-        } catch (Exception e) {
-            logger.error("Error promoting profile with ID: {}", id, e);
-            throw new RuntimeException("Unexpected error promoting profile");
-        }
-    }
-
-    @Transactional(timeout = 2)
-    public Profile demoteFromAdmin(UUID id) {
-        logger.info("Demoting profile with ID: {} from admin", id);
-        try {
-            Profile profile = profileRepository.findAndLockById(id)
-                    .orElseThrow(() -> new BadRequestException("Profile not found"));
-            if (profile.getType() != ProfileType.admin) {
-                logger.warn("Profile with ID: {} is not an admin", id);
-                return profile; // Not an admin, no change needed
-            }
-            profile.setType(ProfileType.user);
             return profileRepository.save(profile);
         } catch (DataAccessResourceFailureException ex) {
             logger.error("Database error toggling admin status for profile with ID: {}", id, ex);
             throw new ServiceUnavailableException("Service unavailable due to database issues");
         } catch (TransactionTimedOutException ex) {
-            logger.error("Transaction timed out while demoting profile with ID: {}", id, ex);
-            throw new RequestTimeoutException("Request timed out while demoting profile");
+            logger.error("Transaction timed out while toggling profile with ID: {}", id, ex);
+            throw new RequestTimeoutException("Request timed out while toggling admin status");
         } catch (BadRequestException e) {
             throw e;
         } catch (Exception e) {

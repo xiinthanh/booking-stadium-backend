@@ -157,75 +157,47 @@ class ProfileServiceTest {
     }
 
     @Test
-    void promoteToAdmin_valid() {
-        Profile promoted = profileService.promoteToAdmin(existing.getId());
-        assertEquals(ProfileType.admin, promoted.getType());
+    void toggleAdmin_promoteUserToAdmin() {
+        // existing user is of type USER
+        Profile toggled = profileService.toggleAdmin(existing.getId());
+        assertEquals(ProfileType.admin, toggled.getType());
     }
     @Test
-    void promoteToAdmin_nonexist_throwsBadRequest() {
-        assertThrows(BadRequestException.class, () -> profileService.promoteToAdmin(UUID.randomUUID()));
-    }
-   @Test
-   void promoteToAdmin_alreadyAdmin_doNothing() {
-        // manually set existing profile to admin
+    void toggleAdmin_demoteAdminToUser() {
         existing.setType(ProfileType.admin);
         profileRepository.save(existing);
-
-        profileService.promoteToAdmin(existing.getId());
-
-        assertEquals(ProfileType.admin, existing.getType());
+        Profile toggled = profileService.toggleAdmin(existing.getId());
+        assertEquals(ProfileType.user, toggled.getType());
     }
     @Test
-    void promoteToAdmin_dataAccessResourceFailure_throwsServiceUnavailable() {
+    void toggleAdmin_nonexistent_throwsBadRequest() {
+        assertThrows(BadRequestException.class, () ->
+            profileService.toggleAdmin(UUID.randomUUID())
+        );
+    }
+    @Test
+    void toggleAdmin_dataAccessResourceFailure_throwsServiceUnavailable() {
         doThrow(DataAccessResourceFailureException.class)
-                .when(profileRepository).findAndLockById(existing.getId());
-        assertThrows(ServiceUnavailableException.class, () -> profileService.promoteToAdmin(existing.getId()));
+            .when(profileRepository).findAndLockById(existing.getId());
+        assertThrows(ServiceUnavailableException.class, () ->
+            profileService.toggleAdmin(existing.getId())
+        );
     }
     @Test
-    void promoteToAdmin_transactionTimeout_throwsRequestTimeout() {
+    void toggleAdmin_transactionTimeout_throwsRequestTimeout() {
         doThrow(TransactionTimedOutException.class)
-                .when(profileRepository).findAndLockById(existing.getId());
-        assertThrows(RequestTimeoutException.class, () -> profileService.promoteToAdmin(existing.getId()));
+            .when(profileRepository).findAndLockById(existing.getId());
+        assertThrows(RequestTimeoutException.class, () ->
+            profileService.toggleAdmin(existing.getId())
+        );
     }
     @Test
-    void promoteToAdmin_genericException_throwsRuntimeException() {
+    void toggleAdmin_genericException_throwsRuntimeException() {
         doThrow(RuntimeException.class)
-                .when(profileRepository).findAndLockById(existing.getId());
-        assertThrows(RuntimeException.class, () -> profileService.promoteToAdmin(existing.getId()));
+            .when(profileRepository).findAndLockById(existing.getId());
+        assertThrows(RuntimeException.class, () ->
+            profileService.toggleAdmin(existing.getId())
+        );
     }
 
-    @Test
-    void demoteFromAdmin_valid() {
-        existing.setType(ProfileType.admin);
-        profileRepository.save(existing);
-        Profile demoted = profileService.demoteFromAdmin(existing.getId());
-        assertEquals(ProfileType.user, demoted.getType());
-    }
-    @Test
-    void demoteFromAdmin_nonexist_throwsBadRequest() {
-        assertThrows(BadRequestException.class, () -> profileService.demoteFromAdmin(UUID.randomUUID()));
-    }
-    @Test
-    void demoteFromAdmin_notAdmin_doNothing() {
-        profileService.demoteFromAdmin(existing.getId());
-        assertEquals(ProfileType.user, existing.getType());
-    }
-    @Test
-    void demoteFromAdmin_dataAccessResourceFailure_throwsServiceUnavailable() {
-        doThrow(DataAccessResourceFailureException.class)
-                .when(profileRepository).findAndLockById(existing.getId());
-        assertThrows(ServiceUnavailableException.class, () -> profileService.demoteFromAdmin(existing.getId()));
-    }
-    @Test
-    void demoteFromAdmin_transactionTimeout_throwsRequestTimeout() {
-        doThrow(TransactionTimedOutException.class)
-                .when(profileRepository).findAndLockById(existing.getId());
-        assertThrows(RequestTimeoutException.class, () -> profileService.demoteFromAdmin(existing.getId()));
-    }
-    @Test
-    void demoteFromAdmin_genericException_throwsRuntimeException() {
-        doThrow(RuntimeException.class)
-                .when(profileRepository).findAndLockById(existing.getId());
-        assertThrows(RuntimeException.class, () -> profileService.demoteFromAdmin(existing.getId()));
-    }
 }
