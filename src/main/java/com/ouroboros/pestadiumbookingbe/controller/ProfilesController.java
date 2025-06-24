@@ -17,7 +17,6 @@ public class ProfilesController {
     @Autowired
     private ProfileService profileService;
 
-    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/get-profiles")
     public ResponseEntity<List<Profile>> getAllProfiles() {
         List<Profile> profiles = profileService.getAllProfiles();
