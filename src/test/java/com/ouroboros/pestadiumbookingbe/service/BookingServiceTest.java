@@ -4,6 +4,7 @@ import com.ouroboros.pestadiumbookingbe.exception.*;
 import com.ouroboros.pestadiumbookingbe.model.*;
 import com.ouroboros.pestadiumbookingbe.notifier.BookingNotificationType;
 import com.ouroboros.pestadiumbookingbe.repository.*;
+import jakarta.transaction.Synchronization;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +15,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.transaction.TransactionTimedOutException;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -959,26 +962,69 @@ class BookingServiceTest {
         assertEquals(b2.getId(), result.getFirst().getId());
     }
 
-//    @Test
-//    void createBooking_triggersNotification() {
-//        Booking b = bookingService.createBooking(userId, hallId, sportId, date, slotId, "newBooking");
-//        verify(notificationService, times(1))
-//            .notifyOnBookingChange(b, BookingNotificationType.CREATION);
-//    }
-//
-//    @Test
-//    void confirmBooking_triggersNotification() {
-//        Booking b = bookingService.createBooking(userId, hallId, sportId, date, slotId, "notifyTest");
-//        bookingService.confirmBooking(b.getId(), adminId);
-//        verify(notificationService, times(1))
-//            .notifyOnBookingChange(b, BookingNotificationType.CONFIRMATION);
-//    }
-//
-//    @Test
-//    void cancelBooking_triggersNotification() {
-//        Booking b = bookingService.createBooking(userId, hallId, sportId, date, slotId, "toCancel");
-//        bookingService.cancelBooking(b.getId(), userId);
-//        verify(notificationService, times(1))
-//            .notifyOnBookingChange(b, BookingNotificationType.CANCELLATION);
-//    }
+    @Test
+    void createBooking_triggersNotification() {
+
+        Booking b = bookingService.createBooking(userId, hallId, sportId, date, slotId, "newBooking");
+
+        // Simulate afterCommit notification
+        List<TransactionSynchronization> syncs = TransactionSynchronizationManager.getSynchronizations();
+        syncs.forEach(TransactionSynchronization::afterCommit);
+
+        verify(notificationService, times(1))
+            .notifyOnBookingChange(b, BookingNotificationType.CREATION);
+
+    }
+
+    @Test
+    void confirmBooking_triggersNotification() {
+        Booking b = bookingService.createBooking(userId, hallId, sportId, date, slotId, "notifyTest");
+        bookingService.confirmBooking(b.getId(), adminId);
+
+        // Simulate afterCommit notification
+        List<TransactionSynchronization> syncs = TransactionSynchronizationManager.getSynchronizations();
+        syncs.forEach(TransactionSynchronization::afterCommit);
+
+        verify(notificationService, times(1))
+            .notifyOnBookingChange(b, BookingNotificationType.CONFIRMATION);
+    }
+
+    @Test
+    void cancelBooking_triggersNotification() {
+        Booking b = bookingService.createBooking(userId, hallId, sportId, date, slotId, "toCancel");
+        bookingService.cancelBooking(b.getId(), userId);
+
+        // Simulate afterCommit notification
+        List<TransactionSynchronization> syncs = TransactionSynchronizationManager.getSynchronizations();
+        syncs.forEach(TransactionSynchronization::afterCommit);
+
+        verify(notificationService, times(1))
+            .notifyOnBookingChange(b, BookingNotificationType.CANCELLATION);
+    }
+
+    @Test
+    void modifyBooking_triggersNotification() {
+        Booking b = bookingService.createBooking(userId, hallId, sportId, date, slotId, "toModify");
+        bookingService.modifyBooking(b.getId(), userId, userId, otherHallId, otherSportId, otherDate, otherSlotId, "modified purpose");
+
+        // Simulate afterCommit notification
+        List<TransactionSynchronization> syncs = TransactionSynchronizationManager.getSynchronizations();
+        syncs.forEach(TransactionSynchronization::afterCommit);
+
+        verify(notificationService, times(1))
+            .notifyOnBookingChange(b, BookingNotificationType.MODIFICATION);
+    }
+
+    @Test
+    void deleteBooking_triggersNotification() {
+        Booking b = bookingService.createBooking(userId, hallId, sportId, date, slotId, "toDelete");
+        bookingService.deleteBooking(b.getId(), userId);
+
+        // Simulate afterCommit notification
+        List<TransactionSynchronization> syncs = TransactionSynchronizationManager.getSynchronizations();
+        syncs.forEach(TransactionSynchronization::afterCommit);
+
+        verify(notificationService, times(1))
+            .notifyOnBookingChange(b, BookingNotificationType.DELETION);
+    }
 }
