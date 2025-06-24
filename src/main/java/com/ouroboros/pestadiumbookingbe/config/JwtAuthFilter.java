@@ -1,5 +1,9 @@
 package com.ouroboros.pestadiumbookingbe.config;
 
+import com.ouroboros.pestadiumbookingbe.exception.ForbiddenException;
+import com.ouroboros.pestadiumbookingbe.model.Profile;
+import com.ouroboros.pestadiumbookingbe.model.ProfileType;
+import com.ouroboros.pestadiumbookingbe.repository.ProfileRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -9,24 +13,30 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.security.Key;
-import java.util.Base64;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     @Value("${supabase.jwt-secret}")
     private String jwtSecret;
+
+    @Autowired
+    private ProfileRepository profileRepository;
 
     private static final Logger logger = LoggerFactory.getLogger(JwtAuthFilter.class);
 
@@ -55,19 +65,35 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     .parseClaimsJws(jwtToken)
                     .getBody();
 
-            String username = claims.getSubject();
-            String role = claims.get("role", String.class); // If role is in claims
+            String userIdStr = claims.getSubject();
+            UUID userId = UUID.fromString(userIdStr);
+            String email = claims.get("email", String.class);
+
+            ProfileType profileTypeRole = profileRepository.findById(userId)
+                    .map(Profile::getType)
+                    .orElseThrow(() -> new ForbiddenException("User not found"));
+            String role = profileTypeRole.name().toUpperCase();
+
+            Map<String, Object> userMetadata = claims.get("user_metadata", Map.class);
+            String fullName = userMetadata != null ? (String) userMetadata.get("full_name") : "Unknown User";
+
+            List<GrantedAuthority> authorities = List.of(
+                    new SimpleGrantedAuthority("ROLE_" + role)
+            );
+
+            UserPrincipal userPrincipal = new UserPrincipal(
+                    userId,
+                    email,
+                    fullName,
+                    authorities
+            );
 
             logger.info("JWT Claims: {}", claims);
-
-            UserDetails userDetails = User.builder()
-                    .username(username)
-                    .password("") // Password not needed here
-                    .authorities("ROLE_" + (role != null ? role.toUpperCase() : "USER"))
-                    .build();
+            logger.info("Authenticated user: {}", userPrincipal.getUsername());
+            logger.info("User role: {}", role);
 
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                    userDetails, null, userDetails.getAuthorities());
+                    userPrincipal, null, authorities);
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
