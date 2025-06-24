@@ -48,6 +48,9 @@ class BookingServiceTest {
     LocalDate date, otherDate;
     UUID adminId;
 
+    String studentId = "12345678";
+    String otherStudentId = "87654321";
+
     @BeforeEach
     void setup() {
         // persist Sport
@@ -65,19 +68,22 @@ class BookingServiceTest {
 
         // persist profile
         Profile p = new Profile();
-        p.setEmail("test@example.com");
+        p.setEmail("12345678@vgu.edu.vn");
+        p.setStudentId(studentId);
         p.setType(ProfileType.user);
         profileRepository.save(p);
         userId = p.getId();
 
         Profile otherP = new Profile();
-        otherP.setEmail("other@example.com");
+        otherP.setEmail("87654321@vgu.edu.vn");
+        otherP.setStudentId(otherStudentId);
         otherP.setType(ProfileType.user);
         profileRepository.save(otherP);
         otherUserId = otherP.getId();
 
         Profile admin = new Profile();
         admin.setEmail("admin@example.com");
+        admin.setStudentId("admin123");
         admin.setType(ProfileType.admin);
         profileRepository.save(admin);
         adminId = admin.getId();
@@ -918,7 +924,7 @@ class BookingServiceTest {
         Booking b1 = bookingService.createBooking(userId, hallId, sportId, date, slotId, "p1");
         Booking b2 = bookingService.createBooking(userId, otherHallId, otherSportId, otherDate, otherSlotId, "p2");
         bookingService.createBooking(otherUserId, otherHallId, otherSportId, date, slotId, "p3");
-        List<Booking> result = bookingService.filterBookings(Optional.of(userId), Optional.empty(), Optional.empty(), Optional.empty());
+        List<Booking> result = bookingService.filterBookings(Optional.of(studentId), Optional.empty(), Optional.empty(), Optional.empty());
         assertEquals(2, result.size());
         assertEquals(userId, result.getFirst().getUserId());
     }
@@ -966,7 +972,7 @@ class BookingServiceTest {
         Booking b2 = bookingService.createBooking(userId, otherHallId, otherSportId, otherDate, otherSlotId, "p2");
         bookingService.confirmBooking(b2.getId(), adminId);
         List<Booking> result = bookingService.filterBookings(
-                Optional.of(userId),
+                Optional.of(studentId),
                 Optional.of(SportHallLocation.outdoor),
                 Optional.of(ProfileType.user),
                 Optional.of(Status.confirmed)

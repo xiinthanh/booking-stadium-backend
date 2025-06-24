@@ -145,14 +145,13 @@ public class BookingController {
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/filter-bookings")
     public ResponseEntity<List<Booking>> filterBookings(
-            @RequestParam(required = false) String userId,
+            @RequestParam(required = false) String studentId,
             @RequestParam(required = false) SportHallLocation location,
             @RequestParam(required = false) ProfileType profileType,
             @RequestParam(required = false) Status status) {
         try {
-            Optional<UUID> userIdOpt = Optional.ofNullable(userId).map(UUID::fromString);
             List<Booking> bookings = bookingService.filterBookings(
-                userIdOpt,
+                Optional.ofNullable(studentId),
                 Optional.ofNullable(location),
                 Optional.ofNullable(profileType),
                 Optional.ofNullable(status)
