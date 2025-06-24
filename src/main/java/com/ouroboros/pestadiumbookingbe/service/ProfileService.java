@@ -100,14 +100,20 @@ public class ProfileService {
     }
 
     @Transactional(timeout = 2)
-    public Profile promoteToAdmin(UUID id) {
-        logger.info("Promoting profile with ID: {} to admin", id);
+    public Profile toggleAdmin(UUID id) {
+        logger.info("Toggling admin status for profile with ID: {}", id);
         try {
             Profile profile = profileRepository.findAndLockById(id)
                     .orElseThrow(() -> new BadRequestException("Profile not found"));
+
             if (profile.getType() == ProfileType.admin) {
-                logger.warn("Profile with ID: {} is already an admin", id);
-                return profile; // Already an admin, no change needed
+                // Currently admin, demote to user
+                logger.info("Demoting profile with ID: {} from admin to user", id);
+                profile.setType(ProfileType.user);
+            } else {
+                // Currently not admin, promote to admin
+                logger.info("Promoting profile with ID: {} to admin", id);
+                profile.setType(ProfileType.admin);
             }
             profile.setType(ProfileType.admin);
             return profileRepository.save(profile);
@@ -138,7 +144,7 @@ public class ProfileService {
             profile.setType(ProfileType.user);
             return profileRepository.save(profile);
         } catch (DataAccessResourceFailureException ex) {
-            logger.error("Database error demoting profile with ID: {}", id, ex);
+            logger.error("Database error toggling admin status for profile with ID: {}", id, ex);
             throw new ServiceUnavailableException("Service unavailable due to database issues");
         } catch (TransactionTimedOutException ex) {
             logger.error("Transaction timed out while demoting profile with ID: {}", id, ex);
@@ -146,8 +152,8 @@ public class ProfileService {
         } catch (BadRequestException e) {
             throw e;
         } catch (Exception e) {
-            logger.error("Error demoting profile with ID: {}", id, e);
-            throw new RuntimeException("Unexpected error demoting profile");
+            logger.error("Error toggling admin status for profile with ID: {}", id, e);
+            throw new RuntimeException("Unexpected error toggling admin status");
         }
     }
 }
