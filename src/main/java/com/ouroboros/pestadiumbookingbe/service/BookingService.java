@@ -1,11 +1,9 @@
 package com.ouroboros.pestadiumbookingbe.service;
 
-import com.ouroboros.pestadiumbookingbe.exception.BadRequestException;
-import com.ouroboros.pestadiumbookingbe.exception.ConflictException;
-import com.ouroboros.pestadiumbookingbe.exception.ForbiddenException;
-import com.ouroboros.pestadiumbookingbe.exception.RequestTimeoutException;
-import com.ouroboros.pestadiumbookingbe.exception.ServiceUnavailableException;
-import com.ouroboros.pestadiumbookingbe.model.*;
+import com.ouroboros.pestadiumbookingbe.exception.*;
+import com.ouroboros.pestadiumbookingbe.model.Booking;
+import com.ouroboros.pestadiumbookingbe.model.ProfileType;
+import com.ouroboros.pestadiumbookingbe.model.Status;
 import com.ouroboros.pestadiumbookingbe.notifier.BookingNotificationType;
 import com.ouroboros.pestadiumbookingbe.repository.BookingRepository;
 import com.ouroboros.pestadiumbookingbe.repository.ProfileRepository;
@@ -14,9 +12,7 @@ import com.ouroboros.pestadiumbookingbe.repository.TimeSlotRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataAccessResourceFailureException;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.TransactionTimedOutException;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,9 +22,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 public class BookingService {
@@ -147,15 +141,11 @@ public class BookingService {
             logger.info("Booking created successfully for userId: {}, sportHallId: {}, sportId: {}, date: {}, timeSlotId: {}", userId, sportHallId, sportId, date, timeSlotId);
 
             // Notify after transaction or immediately if no transaction active
-            if (TransactionSynchronizationManager.isSynchronizationActive()) {
-                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                    @Override public void afterCommit() {
-                        notificationService.notifyOnBookingChange(savedBooking, BookingNotificationType.CREATION);
-                    }
-                });
-            } else {
-                notificationService.notifyOnBookingChange(savedBooking, BookingNotificationType.CREATION);
-            }
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override public void afterCommit() {
+                    notificationService.notifyOnBookingChange(savedBooking, BookingNotificationType.CREATION);
+                }
+            });
 
             return savedBooking;
         } catch (DataAccessResourceFailureException ex) {
@@ -205,15 +195,11 @@ public class BookingService {
             booking.setCanceledBy(null);
             Booking savedBooking = bookingRepository.save(booking);
             // Notify
-            if (TransactionSynchronizationManager.isSynchronizationActive()) {
-                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                    @Override public void afterCommit() {
-                        notificationService.notifyOnBookingChange(savedBooking, BookingNotificationType.CONFIRMATION);
-                    }
-                });
-            } else {
-                notificationService.notifyOnBookingChange(savedBooking, BookingNotificationType.CONFIRMATION);
-            }
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override public void afterCommit() {
+                    notificationService.notifyOnBookingChange(savedBooking, BookingNotificationType.CONFIRMATION);
+                }
+            });
 
             return savedBooking;
         } catch (org.springframework.dao.DataAccessException ex) {
@@ -252,15 +238,11 @@ public class BookingService {
             booking.setStatus(Status.rejected);
             Booking savedBooking = bookingRepository.save(booking);
             // Notify
-            if (TransactionSynchronizationManager.isSynchronizationActive()) {
-                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                    @Override public void afterCommit() {
-                        notificationService.notifyOnBookingChange(savedBooking, BookingNotificationType.CANCELLATION);
-                    }
-                });
-            } else {
-                notificationService.notifyOnBookingChange(savedBooking, BookingNotificationType.CANCELLATION);
-            }
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override public void afterCommit() {
+                    notificationService.notifyOnBookingChange(savedBooking, BookingNotificationType.CANCELLATION);
+                }
+            });
 
             logger.info("Booking canceled successfully with ID: {}", bookingId);
             return savedBooking;
@@ -330,15 +312,11 @@ public class BookingService {
             booking.setStatus(Status.pending);  // Reset status to pending, waiting for confirmation from admin
             Booking savedBooking = bookingRepository.save(booking);
             // Notify
-            if (TransactionSynchronizationManager.isSynchronizationActive()) {
-                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                    @Override public void afterCommit() {
-                        notificationService.notifyOnBookingChange(savedBooking, BookingNotificationType.MODIFICATION);
-                    }
-                });
-            } else {
-                notificationService.notifyOnBookingChange(savedBooking, BookingNotificationType.MODIFICATION);
-            }
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override public void afterCommit() {
+                    notificationService.notifyOnBookingChange(savedBooking, BookingNotificationType.MODIFICATION);
+                }
+            });
 
             return savedBooking;
         } catch (DataAccessResourceFailureException ex) {
@@ -372,15 +350,11 @@ public class BookingService {
 
             bookingRepository.delete(booking);
             // Notify
-            if (TransactionSynchronizationManager.isSynchronizationActive()) {
-                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                    @Override public void afterCommit() {
-                        notificationService.notifyOnBookingChange(booking, BookingNotificationType.DELETION);
-                    }
-                });
-            } else {
-                notificationService.notifyOnBookingChange(booking, BookingNotificationType.DELETION);
-            }
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override public void afterCommit() {
+                    notificationService.notifyOnBookingChange(booking, BookingNotificationType.DELETION);
+                }
+            });
 
             logger.info("Booking deleted successfully with ID: {}", bookingId);
         } catch (DataAccessResourceFailureException ex) {

@@ -356,8 +356,8 @@ class SearchServiceTest {
 
     @Test
     void filterBookings_byUserId() {
-        Booking b1 = bookingService.createBooking(userId, hallId, sportId, date, slotId, "p1");
-        Booking b2 = bookingService.createBooking(userId, otherHallId, otherSportId, otherDate, otherSlotId, "p2");
+        bookingService.createBooking(userId, hallId, sportId, date, slotId, "p1");
+        bookingService.createBooking(userId, otherHallId, otherSportId, otherDate, otherSlotId, "p2");
         bookingService.createBooking(otherUserId, otherHallId, otherSportId, date, slotId, "p3");
         List<Booking> result = searchService.filterBookings(Optional.of(studentId), Optional.empty(), Optional.empty(), Optional.empty());
         assertEquals(2, result.size());
@@ -379,8 +379,8 @@ class SearchServiceTest {
 
     @Test
     void filterBookings_byLocation() {
-        Booking b1 = bookingService.createBooking(userId, hallId, sportId, date, slotId, "p1");
-        Booking b2 = bookingService.createBooking(otherUserId, otherHallId, sportId, date, slotId, "p2");
+        bookingService.createBooking(userId, hallId, sportId, date, slotId, "p1");
+        bookingService.createBooking(otherUserId, otherHallId, sportId, date, slotId, "p2");
         List<Booking> indoor = searchService.filterBookings(Optional.empty(), Optional.of(SportHallLocation.indoor), Optional.empty(), Optional.empty());
         List<Booking> outdoor = searchService.filterBookings(Optional.empty(), Optional.of(SportHallLocation.outdoor), Optional.empty(), Optional.empty());
         assertEquals(1, indoor.size());
@@ -391,8 +391,8 @@ class SearchServiceTest {
 
     @Test
     void filterBookings_byProfileType() {
-        Booking b1 = bookingService.createBooking(userId, hallId, sportId, date, slotId, "p1");
-        Booking b2 = bookingService.createBooking(adminId, otherHallId, sportId, date, slotId, "p2");
+        bookingService.createBooking(userId, hallId, sportId, date, slotId, "p1");
+        bookingService.createBooking(adminId, otherHallId, sportId, date, slotId, "p2");
         List<Booking> users = searchService.filterBookings(Optional.empty(), Optional.empty(), Optional.of(ProfileType.user), Optional.empty());
         List<Booking> admins = searchService.filterBookings(Optional.empty(), Optional.empty(), Optional.of(ProfileType.admin), Optional.empty());
         assertEquals(1, users.size());
@@ -402,8 +402,16 @@ class SearchServiceTest {
     }
 
     @Test
+    void filterBookings_noMatchedLocation_returnsEmptyList() {
+        bookingService.createBooking(userId, hallId, sportId, date, slotId, "p1");
+        bookingService.createBooking(otherUserId, hallId, sportId, otherDate, otherSlotId, "p2");
+        List<Booking> result = searchService.filterBookings(Optional.empty(), Optional.of(SportHallLocation.outdoor), Optional.empty(), Optional.empty());
+        assertEquals(0, result.size());
+    }
+
+    @Test
     void filterBookings_combinedFilters() {
-        Booking b1 = bookingService.createBooking(userId, hallId, sportId, date, slotId, "p1");
+        bookingService.createBooking(userId, hallId, sportId, date, slotId, "p1");
         Booking b2 = bookingService.createBooking(userId, otherHallId, otherSportId, otherDate, otherSlotId, "p2");
         bookingService.confirmBooking(b2.getId(), adminId);
         List<Booking> result = searchService.filterBookings(

@@ -2,9 +2,11 @@ package com.ouroboros.pestadiumbookingbe.service;
 
 import com.ouroboros.pestadiumbookingbe.exception.BadRequestException;
 import com.ouroboros.pestadiumbookingbe.exception.ServiceUnavailableException;
-import com.ouroboros.pestadiumbookingbe.exception.RequestTimeoutException;
 import com.ouroboros.pestadiumbookingbe.model.*;
-import com.ouroboros.pestadiumbookingbe.repository.*;
+import com.ouroboros.pestadiumbookingbe.repository.BookingRepository;
+import com.ouroboros.pestadiumbookingbe.repository.ProfileRepository;
+import com.ouroboros.pestadiumbookingbe.repository.SportHallRepository;
+import com.ouroboros.pestadiumbookingbe.repository.TimeSlotRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.stereotype.Service;
@@ -164,20 +166,22 @@ public class SearchService {
         if (locationOpt.isPresent()) {
             SportHallLocation location = locationOpt.get();
             bookings = bookings.stream()
-                    .filter(b -> {
-                        Optional<SportHall> hall = sportHallRepository.findById(b.getSportHallId());
-                        return hall.isPresent() && hall.get().getLocation().equals(location);
-                    })
+                    .filter(b ->
+                            sportHallRepository.getReferenceById(b.getSportHallId())
+                                    .getLocation()
+                                    .equals(location)
+                    )
                     .collect(Collectors.toList());
         }
 
         if (profileTypeOpt.isPresent()) {
             ProfileType profileType = profileTypeOpt.get();
             bookings = bookings.stream()
-                    .filter(b -> {
-                        Optional<Profile> profile = profileRepository.findById(b.getUserId());
-                        return profile.isPresent() && profile.get().getType().equals(profileType);
-                    })
+                    .filter(b ->
+                            profileRepository.getReferenceById(b.getUserId())
+                                    .getType()
+                                    .equals(profileType)
+                    )
                     .collect(Collectors.toList());
         }
 

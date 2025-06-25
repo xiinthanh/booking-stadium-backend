@@ -41,7 +41,7 @@ public class EmailController {
     public ResponseEntity<String> sendEmailWithIcs(@RequestParam String to,
                                                     @RequestParam String subject,
                                                     @RequestParam String text,
-                                                    @ModelAttribute BookingRequest bookingRequest) throws Exception {
+                                                    @ModelAttribute BookingRequest bookingRequest) {
         try {
             Booking newBooking = new Booking();
             newBooking.setUserId(bookingRequest.getUserId());
