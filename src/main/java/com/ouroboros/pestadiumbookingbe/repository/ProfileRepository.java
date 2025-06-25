@@ -14,6 +14,4 @@ import java.util.UUID;
 public interface ProfileRepository extends JpaRepository<Profile, UUID> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<Profile> findAndLockById(UUID id);
-
-    List<Profile> findByStudentId(String studentId);
 }
