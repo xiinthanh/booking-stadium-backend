@@ -312,6 +312,49 @@ class SearchServiceTest {
     }
 
     @Test
+    void filterBookings_userWithEmptyStudentId_skipsUser() {
+        // Create a user with an empty student ID
+        Profile newUser = new Profile();
+        newUser.setEmail("1234567@student.vgu.edu.vn");
+        newUser.setType(ProfileType.user);
+        profileRepository.save(newUser);
+
+        // request filter should not include this user
+        bookingService.createBooking(userId, hallId, sportId, date, slotId, "p1");
+        bookingService.createBooking(newUser.getId(), otherHallId, otherSportId, otherDate, otherSlotId, "p2");
+        List<Booking> result = searchService.filterBookings(Optional.of(studentId.substring(0, 3)), Optional.empty(), Optional.empty(), Optional.empty());
+        assertEquals(1, result.size());
+    }
+
+    @Test
+    void filterBookings_noMatchedStudentId_returnsEmptyList() {
+        // Create bookings with different student IDs
+        bookingService.createBooking(userId, hallId, sportId, date, slotId, "p1");
+        bookingService.createBooking(otherUserId, otherHallId, otherSportId, otherDate, otherSlotId, "p2");
+        List<Booking> result = searchService.filterBookings(Optional.of("nonexistent"), Optional.empty(), Optional.empty(), Optional.empty());
+        assertEquals(0, result.size());
+    }
+
+    @Test
+    void filterBookings_emptyStringStudentId_returnsAllBookings() {
+        Booking b1 = bookingService.createBooking(userId, hallId, sportId, date, slotId, "p1");
+        Booking b2 = bookingService.createBooking(otherUserId, otherHallId, otherSportId, otherDate, otherSlotId, "p2");
+        List<Booking> result = searchService.filterBookings(Optional.of(""), Optional.empty(), Optional.empty(), Optional.empty());
+        assertEquals(2, result.size());
+        assertTrue(result.stream().map(Booking::getId).toList().containsAll(List.of(b1.getId(), b2.getId())));
+    }
+
+    @Test
+    void filterBookings_partialStudentId_returnsFilteredBookings() {
+        Booking b1 = bookingService.createBooking(userId, hallId, sportId, date, slotId, "p1");
+        Booking b2 = bookingService.createBooking(userId, otherHallId, otherSportId, otherDate, otherSlotId, "p2");
+        bookingService.createBooking(otherUserId, otherHallId, otherSportId, date, otherSlotId, "p3");
+        List<Booking> result = searchService.filterBookings(Optional.of(studentId.substring(0, 5)), Optional.empty(), Optional.empty(), Optional.empty());
+        assertEquals(2, result.size());
+        assertTrue(result.stream().map(Booking::getId).toList().containsAll(List.of(b1.getId(), b2.getId())));
+    }
+
+    @Test
     void filterBookings_byUserId() {
         Booking b1 = bookingService.createBooking(userId, hallId, sportId, date, slotId, "p1");
         Booking b2 = bookingService.createBooking(userId, otherHallId, otherSportId, otherDate, otherSlotId, "p2");

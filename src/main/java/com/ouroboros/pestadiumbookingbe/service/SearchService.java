@@ -133,21 +133,24 @@ public class SearchService {
         List<Booking> bookings = bookingRepository.findAll();
 
         // Apply filters conditionally
-        if (studentId.isPresent() && !studentId.get().isEmpty()) {
+        if (studentId.isPresent() && !studentId.get().isEmpty()) {  // skip if studentId is empty or ""
             String partialStudentId = studentId.get().toLowerCase();
             List<Profile> matchingProfiles = profileRepository.findAll().stream()
                     .filter(profile -> profile.getStudentId() != null &&
                                       profile.getStudentId().toLowerCase().contains(partialStudentId))
-                    .collect(Collectors.toList());
+                    .toList();
 
             if (!matchingProfiles.isEmpty()) {
                 List<UUID> matchingUserIds = matchingProfiles.stream()
                         .map(Profile::getId)
-                        .collect(Collectors.toList());
+                        .toList();
 
                 bookings = bookings.stream()
                         .filter(b -> matchingUserIds.contains(b.getUserId()))
                         .collect(Collectors.toList());
+            } else {
+                // If no profiles match the student ID, return an empty list
+                return List.of();
             }
         }
 
