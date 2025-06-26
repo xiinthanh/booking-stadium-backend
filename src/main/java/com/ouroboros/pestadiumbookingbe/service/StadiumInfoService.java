@@ -3,10 +3,8 @@ package com.ouroboros.pestadiumbookingbe.service;
 import com.ouroboros.pestadiumbookingbe.exception.ServiceUnavailableException;
 import com.ouroboros.pestadiumbookingbe.model.SportHall;
 import com.ouroboros.pestadiumbookingbe.model.Sport;
-import com.ouroboros.pestadiumbookingbe.model.TimeSlot;
 import com.ouroboros.pestadiumbookingbe.repository.SportHallRepository;
 import com.ouroboros.pestadiumbookingbe.repository.SportRepository;
-import com.ouroboros.pestadiumbookingbe.repository.TimeSlotRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,8 +20,6 @@ public class StadiumInfoService {
     private SportHallRepository sportHallRepository;
     @Autowired
     private SportRepository sportRepository;
-    @Autowired
-    private TimeSlotRepository timeSlotRepository;
 
     private static final Logger logger = LoggerFactory.getLogger(StadiumInfoService.class);
 
@@ -64,26 +60,6 @@ public class StadiumInfoService {
         } catch (Exception e) {
             logger.error("Error fetching sports", e);
             throw new ServiceUnavailableException("Error fetching sports", e);
-        }
-    }
-
-    public List<TimeSlot> getAllTimeSlots() {
-        logger.info("Fetching all time slots");
-        try {
-            List<TimeSlot> timeSlots = timeSlotRepository.findAll();
-            if (timeSlots.isEmpty()) {
-                logger.warn("No time slots found");
-                throw new ServiceUnavailableException("No time slots found");
-            }
-            return timeSlots;
-        } catch (org.springframework.dao.DataAccessException ex) {
-            logger.error("Database error fetching time slots", ex);
-            throw new ServiceUnavailableException("Database error fetching time slots", ex);
-        } catch (ServiceUnavailableException e) {
-            throw e;
-        } catch (Exception e) {
-            logger.error("Error fetching time slots", e);
-            throw new ServiceUnavailableException("Error fetching time slots", e);
         }
     }
 }

@@ -1,6 +1,7 @@
 package com.ouroboros.pestadiumbookingbe.dto;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.UUID;
 
 public class BookingRequest {
@@ -8,7 +9,8 @@ public class BookingRequest {
     private UUID sportHallId;
     private UUID sportId;
     private LocalDate date;
-    private UUID timeSlotId;
+    private LocalTime startTime;
+    private LocalTime endTime;
     private String purpose;
 
     // Getters and setters
@@ -36,14 +38,6 @@ public class BookingRequest {
         this.date = date;
     }
 
-    public UUID getTimeSlotId() {
-        return timeSlotId;
-    }
-
-    public void setTimeSlotId(UUID timeSlotId) {
-        this.timeSlotId = timeSlotId;
-    }
-
     public String getPurpose() {
         return purpose;
     }
@@ -58,5 +52,21 @@ public class BookingRequest {
 
     public void setSportId(UUID sportId) {
         this.sportId = sportId;
+    }
+
+    public LocalTime getStartTime() {
+        return startTime;
+    }
+
+    public void setStartTime(LocalTime startTime) {
+        this.startTime = startTime;
+    }
+
+    public LocalTime getEndTime() {
+        return endTime;
+    }
+
+    public void setEndTime(LocalTime endTime) {
+        this.endTime = endTime;
     }
 }

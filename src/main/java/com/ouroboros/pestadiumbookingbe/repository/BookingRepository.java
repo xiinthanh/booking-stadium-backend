@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Lock;
 
 import jakarta.persistence.LockModeType;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.List;
@@ -15,7 +16,9 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     Optional<Booking> findById(UUID id);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    List<Booking> findAndLockBySportHallIdAndBookingDateAndTimeSlotIdAndStatus(UUID sportHallId, LocalDate bookingDate, UUID timeSlotId, Status status);
+    List<Booking> findAndLockBySportHallIdAndBookingDateAndStartTimeAndEndTimeAndStatus(
+            UUID sportHallId, LocalDate bookingDate, LocalTime startTime, LocalTime endTime, Status status
+    );
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<Booking> findAndLockById(UUID id);

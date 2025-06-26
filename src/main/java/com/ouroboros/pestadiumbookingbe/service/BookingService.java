@@ -8,7 +8,6 @@ import com.ouroboros.pestadiumbookingbe.notifier.BookingNotificationType;
 import com.ouroboros.pestadiumbookingbe.repository.BookingRepository;
 import com.ouroboros.pestadiumbookingbe.repository.ProfileRepository;
 import com.ouroboros.pestadiumbookingbe.repository.SportHallRepository;
-import com.ouroboros.pestadiumbookingbe.repository.TimeSlotRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +19,7 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -37,8 +37,6 @@ public class BookingService {
     public ProfileRepository profileRepository;
     @Autowired
     public SportHallRepository sportHallRepository;
-    @Autowired
-    public TimeSlotRepository timeSlotRepository;
 
     // Rename validation methods to reflect inverted logic
     boolean isInvalidUser(UUID userId) {
@@ -52,14 +50,6 @@ public class BookingService {
     boolean isInvalidSportHall(UUID sportHallId) {
         if (sportHallRepository.findById(sportHallId).isEmpty()) {
             logger.warn("Sport hall ID not found for sportHallId: {}", sportHallId);
-            return true;
-        }
-        return false;
-    }
-
-    boolean isInvalidTimeSlot(UUID timeSlotId) {
-        if (timeSlotRepository.findById(timeSlotId).isEmpty()) {
-            logger.warn("Time slot ID not found for timeSlotId: {}", timeSlotId);
             return true;
         }
         return false;
@@ -93,25 +83,41 @@ public class BookingService {
         return false;
     }
 
-    boolean isOccupiedBooking(UUID sportHallId, LocalDate date, UUID timeSlotId) {
-        List<Booking> existingPendingBooking = bookingRepository.findAndLockBySportHallIdAndBookingDateAndTimeSlotIdAndStatus(
-                sportHallId, date, timeSlotId, Status.pending);
-        List<Booking> existingConfirmedBooking = bookingRepository.findAndLockBySportHallIdAndBookingDateAndTimeSlotIdAndStatus(
-                sportHallId, date, timeSlotId, Status.confirmed);
+    boolean isInvalidTimeSlot(LocalTime startTime, LocalTime endTime) {
+        if (startTime == null || endTime == null) {
+            logger.warn("Start time or end time is null");
+            return true;
+        }
+        if (startTime.isAfter(endTime)) {
+            logger.warn("Start time cannot be after end time: startTime={}, endTime={}", startTime, endTime);
+            return true;
+        }
+        if (startTime.equals(endTime)) {
+            logger.warn("Start time cannot be equal to end time: startTime={}, endTime={}", startTime, endTime);
+            return true;
+        }
+        return false;
+    }
+
+    boolean isOccupiedBooking(UUID sportHallId, LocalDate date, LocalTime startTime, LocalTime endTime) {
+        List<Booking> existingPendingBooking = bookingRepository.findAndLockBySportHallIdAndBookingDateAndStartTimeAndEndTimeAndStatus(
+                sportHallId, date, startTime, endTime, Status.pending);
+        List<Booking> existingConfirmedBooking = bookingRepository.findAndLockBySportHallIdAndBookingDateAndStartTimeAndEndTimeAndStatus(
+                sportHallId, date, startTime, endTime, Status.confirmed);
         if (!existingPendingBooking.isEmpty() || !existingConfirmedBooking.isEmpty()) {
-            logger.warn("A booking already exists for sportHallId: {}, date: {}, timeSlotId: {}", sportHallId, date, timeSlotId);
+            logger.warn("A booking already exists for sportHallId: {}, date: {}", sportHallId, date);
             return true;
         }
         return false;
     }
 
     @Transactional(timeout = 2)  // 2 seconds timeout to prevent long-running transactions
-    public Booking createBooking(UUID userId, UUID sportHallId, UUID sportId, LocalDate date, UUID timeSlotId, String purpose) {
-        logger.info("Creating booking for userId: {}, sportHallId: {}, sportId: {}, date: {}, timeSlotId: {}, purpose: {}", userId, sportHallId, sportId, date, timeSlotId, purpose);
+    public Booking createBooking(UUID userId, UUID sportHallId, UUID sportId, LocalDate date, LocalTime startTime, LocalTime endTime, String purpose) {
+        logger.info("Creating booking for userId: {}, sportHallId: {}, sportId: {}, date: {}, startTime: {}, endTime: {}, purpose: {}", userId, sportHallId, sportId, date, startTime, endTime, purpose);
         try {
             // Validate input parameters
-            if (isInvalidUser(userId) || isInvalidSportHall(sportHallId) || isInvalidTimeSlot(timeSlotId) || isInvalidBookingDate(date) || purpose == null || purpose.isEmpty()) {
-                logger.error("Invalid input parameters: userId={}, sportHallId={}, sportId={}, date={}, timeSlotId={}, purpose={}", userId, sportHallId, sportId, date, timeSlotId, purpose);
+            if (isInvalidUser(userId) || isInvalidSportHall(sportHallId) || isInvalidBookingDate(date) || isInvalidTimeSlot(startTime,endTime) || purpose == null || purpose.isEmpty()) {
+                logger.error("Invalid input parameters: userId={}, sportHallId={}, sportId={}, date={}, purpose={}", userId, sportHallId, date, purpose);
                 throw new BadRequestException("Invalid input parameters.");
             }
 
@@ -121,7 +127,7 @@ public class BookingService {
             }
 
             // Make sure not overlapping with existing bookings
-            if (isOccupiedBooking(sportHallId, date, timeSlotId)) {
+            if (isOccupiedBooking(sportHallId, date, startTime, endTime)) {
                 throw new ConflictException("A booking already exists for the given combination.");
             }
 
@@ -129,16 +135,16 @@ public class BookingService {
             Booking booking = new Booking();
             booking.setUserId(userId);
             booking.setSportHallId(sportHallId);
-            booking.setSportId(sportId);
             booking.setBookingDate(date);
-            booking.setTimeSlotId(timeSlotId);
+            booking.setStartTime(startTime);
+            booking.setEndTime(endTime);
             booking.setStatus(Status.pending);
             booking.setPurpose(purpose);
             booking.setCreatedAt(OffsetDateTime.now());
             booking.setUpdatedAt(OffsetDateTime.now());
 
             Booking savedBooking = bookingRepository.save(booking);
-            logger.info("Booking created successfully for userId: {}, sportHallId: {}, sportId: {}, date: {}, timeSlotId: {}", userId, sportHallId, sportId, date, timeSlotId);
+            logger.info("Booking created successfully: id={}, userId={}, sportHallId={}, sportId={}, date={}, startTime={}, endTime={}", savedBooking.getId(), userId, sportHallId, sportId, date, startTime, endTime);
 
             // Notify after transaction or immediately if no transaction active
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
@@ -261,14 +267,14 @@ public class BookingService {
     }
 
     @Transactional(timeout = 2)  // 2 seconds timeout to prevent long-running transactions
-    public Booking modifyBooking(UUID bookingId, UUID modifiedByUserId, UUID userId, UUID sportHallId, UUID sportId, LocalDate date, UUID timeSlotId, String purpose) {
-        logger.info("Modifying booking with ID: {} for userId: {}, sportHallId: {}, sportId: {}, date: {}, timeSlotId: {}, purpose: {}", bookingId, userId, sportHallId, sportId, date, timeSlotId, purpose);
+    public Booking modifyBooking(UUID bookingId, UUID modifiedByUserId, UUID userId, UUID sportHallId, UUID sportId, LocalDate date, LocalTime startTime, LocalTime endTime, String purpose) {
+        logger.info("Modifying booking id={}, userId={}, sportHallId={}, sportId={}, date={}, startTime={}, endTime={}, purpose={}", bookingId, userId, sportHallId, sportId, date, startTime, endTime, purpose);
         try {
             if (bookingId == null || modifiedByUserId == null ||
                     isInvalidUser(modifiedByUserId) || isInvalidUser(userId) ||
-                    isInvalidSportHall(sportHallId) || isInvalidTimeSlot(timeSlotId) ||
+                    isInvalidSportHall(sportHallId) || isInvalidTimeSlot(startTime, endTime) ||
                     isInvalidBookingDate(date) || purpose == null || purpose.isEmpty()) {
-                logger.error("Invalid input parameters for booking modification: bookingId={}, modifiedByUserId={}, userId={}, sportHallId={}, sportId={}, date={}, timeSlotId={}, purpose={}", bookingId, modifiedByUserId, userId, sportHallId, sportId, date, timeSlotId, purpose);
+                logger.error("Invalid input parameters for booking modification: bookingId={}, modifiedByUserId={}, userId={}, sportHallId={}, sportId={}, date={}, startTime={}, endTime={}, purpose={}", bookingId, modifiedByUserId, userId, sportHallId, sportId, date, startTime, endTime, purpose);
                 throw new BadRequestException("Invalid input parameters.");
             }
 
@@ -292,19 +298,20 @@ public class BookingService {
             // is occupied by another booking (not itself)
             if (!booking.getSportHallId().equals(sportHallId) ||
                     !booking.getBookingDate().equals(date) ||
-                    !booking.getTimeSlotId().equals(timeSlotId)) {
-                // the (sportHallId, bookingDate, getTimeSlotId) value of the new version does not match the older version
-                if (isOccupiedBooking(sportHallId, date, timeSlotId)) {
+                    !booking.getStartTime().equals(startTime) ||
+                    !booking.getEndTime().equals(endTime)) {
+                // if time or date changed, check occupancy
+                if (isOccupiedBooking(sportHallId, date, startTime, endTime)) {
                     throw new ConflictException("A booking already exists for the given combination.");
                 }
             }
 
             // Update booking details
             booking.setSportHallId(sportHallId);
-            booking.setSportId(sportId);
             booking.setUserId(userId);
             booking.setBookingDate(date);
-            booking.setTimeSlotId(timeSlotId);
+            booking.setStartTime(startTime);
+            booking.setEndTime(endTime);
             booking.setPurpose(purpose);
             booking.setUpdatedAt(OffsetDateTime.now());
             booking.setCanceledAt(null);  // Clear cancellation details

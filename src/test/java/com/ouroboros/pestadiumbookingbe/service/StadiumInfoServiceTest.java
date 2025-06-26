@@ -3,10 +3,8 @@ package com.ouroboros.pestadiumbookingbe.service;
 import com.ouroboros.pestadiumbookingbe.exception.ServiceUnavailableException;
 import com.ouroboros.pestadiumbookingbe.model.Sport;
 import com.ouroboros.pestadiumbookingbe.model.SportHall;
-import com.ouroboros.pestadiumbookingbe.model.TimeSlot;
 import com.ouroboros.pestadiumbookingbe.repository.SportHallRepository;
 import com.ouroboros.pestadiumbookingbe.repository.SportRepository;
-import com.ouroboros.pestadiumbookingbe.repository.TimeSlotRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
@@ -32,14 +30,11 @@ class StadiumInfoServiceTest {
     private SportHallRepository sportHallRepository;
     @MockitoSpyBean
     private SportRepository sportRepository;
-    @MockitoSpyBean
-    private TimeSlotRepository timeSlotRepository;
 
     @BeforeEach
     void clearDataAndInit() {
         sportHallRepository.deleteAll();
         sportRepository.deleteAll();
-        timeSlotRepository.deleteAll();
 
         Sport s = new Sport();
         s.setName("Sport");
@@ -64,20 +59,6 @@ class StadiumInfoServiceTest {
         hall2.setLocation(com.ouroboros.pestadiumbookingbe.model.SportHallLocation.outdoor);
         hall2.setCapacity(10);
         sportHallRepository.save(hall2);
-
-        TimeSlot slot = new TimeSlot();
-        slot.setStartTime(LocalTime.of(8, 0));
-        slot.setEndTime(LocalTime.of(9, 0));
-        slot.setDurationMinutes(60);
-        slot.setActive(true);
-        timeSlotRepository.save(slot);
-
-        TimeSlot slot2 = new TimeSlot();
-        slot2.setStartTime(LocalTime.of(10, 0));
-        slot2.setEndTime(LocalTime.of(11, 0));
-        slot2.setDurationMinutes(60);
-        slot2.setActive(true);
-        timeSlotRepository.save(slot2);
     }
 
     @Test
@@ -126,29 +107,5 @@ class StadiumInfoServiceTest {
         doThrow(RuntimeException.class)
                 .when(sportRepository).findAll();
         assertThrows(RuntimeException.class, () -> stadiumInfoService.getAllSports());
-    }
-
-    @Test
-    void getAllTimeSlots_empty_throwsServiceUnavailable() {
-        timeSlotRepository.deleteAll();
-        assertThrows(ServiceUnavailableException.class, () -> stadiumInfoService.getAllTimeSlots());
-    }
-    @Test
-    void getAllTimeSlots_returnsList() {
-        List<TimeSlot> slots = stadiumInfoService.getAllTimeSlots();
-        assertFalse(slots.isEmpty());
-        assertEquals(2, slots.size());
-    }
-    @Test
-    void getAllTimeSlots_dataAccessResourceFailure_throwsServiceUnavailable() {
-        doThrow(DataAccessResourceFailureException.class)
-                .when(timeSlotRepository).findAll();
-        assertThrows(ServiceUnavailableException.class, () -> stadiumInfoService.getAllTimeSlots());
-    }
-    @Test
-    void getAllTimeSlots_genericException_throwsRuntimeException() {
-        doThrow(RuntimeException.class)
-                .when(timeSlotRepository).findAll();
-        assertThrows(RuntimeException.class, () -> stadiumInfoService.getAllTimeSlots());
     }
 }

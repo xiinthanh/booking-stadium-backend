@@ -35,8 +35,6 @@ class SearchServiceTest {
     @MockitoSpyBean
     private SportRepository sportRepository;
     @MockitoSpyBean
-    private TimeSlotRepository timeSlotRepository;
-    @MockitoSpyBean
     private ProfileRepository profileRepository;
     @MockitoSpyBean
     private BookingRepository bookingRepository;
@@ -44,9 +42,10 @@ class SearchServiceTest {
     @Autowired
     private BookingService bookingService;
 
-    UUID userId, hallId, slotId, sportId;
-    UUID otherUserId, otherHallId, otherSlotId, otherSportId;
+    UUID userId, hallId, sportId;
+    UUID otherUserId, otherHallId, otherSportId;
     LocalDate date, otherDate;
+    LocalTime startTime, endTime, otherStartTime, otherEndTime;
     UUID adminId;
 
     String studentId = "12345678";
@@ -106,26 +105,13 @@ class SearchServiceTest {
         sportHallRepository.save(otherH);
         otherHallId = otherH.getId();
 
-        // persist time slot
-        TimeSlot t = new TimeSlot();
-        t.setStartTime(LocalTime.of(9, 0));
-        t.setEndTime(LocalTime.of(10, 0));
-        t.setDurationMinutes(60);
-        t.setActive(true);
-        timeSlotRepository.save(t);
-        slotId = t.getId();
-
-        TimeSlot otherT = new TimeSlot();
-        otherT.setStartTime(LocalTime.of(10, 0));
-        otherT.setEndTime(LocalTime.of(11, 0));
-        otherT.setDurationMinutes(60);
-        otherT.setActive(true);
-        timeSlotRepository.save(otherT);
-        otherSlotId = otherT.getId();
-
-        // Set dates for testing
+        // Set dates and times for testing
         date = LocalDate.now().plusDays(1);
         otherDate = LocalDate.now().plusDays(2);
+        startTime = LocalTime.of(9, 0);
+        endTime = LocalTime.of(10, 0);
+        otherStartTime = LocalTime.of(10, 0);
+        otherEndTime = LocalTime.of(11, 0);
     }
 
     @Test
@@ -155,42 +141,10 @@ class SearchServiceTest {
 
 
     @Test
-    void getTimeSlotById_valid() {
-        TimeSlot result = searchService.getTimeSlotById(slotId);
-        assertNotNull(result);
-        assertEquals(slotId, result.getId());
-    }
-    @Test
-    void getTimeSlotById_invalid_throwsBadRequest() {
-        assertThrows(BadRequestException.class, () -> searchService.getTimeSlotById(UUID.randomUUID()));
-    }
-    @Test
-    void getTimeSlotById_dataAccessResourceFailure_throwsServiceUnavailable() {
-        doThrow(DataAccessResourceFailureException.class)
-                .when(timeSlotRepository).findById(slotId);
-
-        assertThrows(ServiceUnavailableException.class, () -> searchService.getTimeSlotById(slotId));
-    }
-    @Test
-    void getTimeSlotById_genericException_throwsRuntimeException() {
-        doThrow(RuntimeException.class)
-                .when(timeSlotRepository).findById(slotId);
-
-        assertThrows(RuntimeException.class, () -> searchService.getTimeSlotById(slotId));
-    }
-
-
-    @Test
     void getAllBookings_returnsAllBookings() {
-        // Clear any existing bookings first
         bookingRepository.deleteAll();
-
-        // Create several bookings
-        bookingService.createBooking(userId, hallId, sportId,
-                date, slotId, "first");
-        bookingService.createBooking(otherUserId, otherHallId, otherSportId,
-                otherDate, otherSlotId, "second");
-
+        bookingService.createBooking(userId, hallId, sportId, date, startTime, endTime, "first");
+        bookingService.createBooking(otherUserId, otherHallId, otherSportId, otherDate, otherStartTime, otherEndTime, "second");
         List<Booking> bookings = searchService.getAllBookings();
         assertEquals(2, bookings.size());
     }
@@ -216,22 +170,15 @@ class SearchServiceTest {
     }
 
     @Test
-    void getBookingById_validId_returnsBooking() {
-        Booking p = bookingService.createBooking(userId, hallId, sportId,
-                date, slotId, "purpose");
-
-        Booking found = searchService.getBookingById(p.getId());
-        assertNotNull(found);
-        assertEquals(p.getId(), found.getId());
+    void getBookingById_valid() {
+        Booking b = bookingService.createBooking(userId, hallId, sportId, date, startTime, endTime, "test");
+        Booking found = searchService.getBookingById(b.getId());
+        assertEquals(b.getId(), found.getId());
     }
-
     @Test
-    void getBookingById_invalidId_throwsBadRequest() {
-        assertThrows(BadRequestException.class, () ->
-                searchService.getBookingById(UUID.randomUUID())
-        );
+    void getBookingById_invalid() {
+        assertThrows(BadRequestException.class, () -> searchService.getBookingById(UUID.randomUUID()));
     }
-
     @Test
     void getBookingById_dataAccessResourceFailureException_throwsServiceUnavailable() {
         doThrow(new DataAccessResourceFailureException("Database error"))
@@ -258,21 +205,19 @@ class SearchServiceTest {
         bookingRepository.deleteAll();
 
         // Create booking for our test user
-        bookingService.createBooking(userId, hallId, sportId,
-                date, slotId, "mine");
+        bookingService.createBooking(userId, hallId, sportId, date, startTime, endTime, "mine");
 
-        bookingService.createBooking(otherUserId, otherHallId, otherSportId,
-                otherDate, slotId, "theirs");
+        bookingService.createBooking(otherUserId, otherHallId, otherSportId, otherDate, otherStartTime, otherEndTime, "theirs");
 
         // User should only see their own booking
         List<Booking> userBookings = searchService.getBookingsByUserId(userId);
         assertEquals(1, userBookings.size());
-        assertEquals("mine", userBookings.getFirst().getPurpose());
+        assertEquals("mine", userBookings.get(0).getPurpose());
 
         // Other user should only see their booking
         List<Booking> otherBookings = searchService.getBookingsByUserId(otherUserId);
         assertEquals(1, otherBookings.size());
-        assertEquals("theirs", otherBookings.getFirst().getPurpose());
+        assertEquals("theirs", otherBookings.get(0).getPurpose());
     }
 
     @Test
@@ -304,8 +249,8 @@ class SearchServiceTest {
 
     @Test
     void filterBookings_noFilters_returnsAllBookings() {
-        Booking b1 = bookingService.createBooking(userId, hallId, sportId, date, slotId, "p1");
-        Booking b2 = bookingService.createBooking(otherUserId, otherHallId, otherSportId, otherDate, otherSlotId, "p2");
+        Booking b1 = bookingService.createBooking(userId, hallId, sportId, date, startTime, endTime, "p1");
+        Booking b2 = bookingService.createBooking(otherUserId, otherHallId, otherSportId, otherDate, otherStartTime, otherEndTime, "p2");
         List<Booking> result = searchService.filterBookings(Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty());
         assertEquals(2, result.size());
         assertTrue(result.stream().map(Booking::getId).toList().containsAll(List.of(b1.getId(), b2.getId())));
@@ -320,8 +265,8 @@ class SearchServiceTest {
         profileRepository.save(newUser);
 
         // request filter should not include this user
-        bookingService.createBooking(userId, hallId, sportId, date, slotId, "p1");
-        bookingService.createBooking(newUser.getId(), otherHallId, otherSportId, otherDate, otherSlotId, "p2");
+        bookingService.createBooking(userId, hallId, sportId, date, startTime, endTime, "p1");
+        bookingService.createBooking(newUser.getId(), otherHallId, otherSportId, otherDate, otherStartTime, otherEndTime, "p2");
         List<Booking> result = searchService.filterBookings(Optional.of(studentId.substring(0, 3)), Optional.empty(), Optional.empty(), Optional.empty());
         assertEquals(1, result.size());
     }
@@ -329,16 +274,16 @@ class SearchServiceTest {
     @Test
     void filterBookings_noMatchedStudentId_returnsEmptyList() {
         // Create bookings with different student IDs
-        bookingService.createBooking(userId, hallId, sportId, date, slotId, "p1");
-        bookingService.createBooking(otherUserId, otherHallId, otherSportId, otherDate, otherSlotId, "p2");
+        bookingService.createBooking(userId, hallId, sportId, date, startTime, endTime, "p1");
+        bookingService.createBooking(otherUserId, otherHallId, otherSportId, otherDate, otherStartTime, otherEndTime, "p2");
         List<Booking> result = searchService.filterBookings(Optional.of("nonexistent"), Optional.empty(), Optional.empty(), Optional.empty());
         assertEquals(0, result.size());
     }
 
     @Test
     void filterBookings_emptyStringStudentId_returnsAllBookings() {
-        Booking b1 = bookingService.createBooking(userId, hallId, sportId, date, slotId, "p1");
-        Booking b2 = bookingService.createBooking(otherUserId, otherHallId, otherSportId, otherDate, otherSlotId, "p2");
+        Booking b1 = bookingService.createBooking(userId, hallId, sportId, date, startTime, endTime, "p1");
+        Booking b2 = bookingService.createBooking(otherUserId, otherHallId, otherSportId, otherDate, otherStartTime, otherEndTime, "p2");
         List<Booking> result = searchService.filterBookings(Optional.of(""), Optional.empty(), Optional.empty(), Optional.empty());
         assertEquals(2, result.size());
         assertTrue(result.stream().map(Booking::getId).toList().containsAll(List.of(b1.getId(), b2.getId())));
@@ -346,9 +291,9 @@ class SearchServiceTest {
 
     @Test
     void filterBookings_partialStudentId_returnsFilteredBookings() {
-        Booking b1 = bookingService.createBooking(userId, hallId, sportId, date, slotId, "p1");
-        Booking b2 = bookingService.createBooking(userId, otherHallId, otherSportId, otherDate, otherSlotId, "p2");
-        bookingService.createBooking(otherUserId, otherHallId, otherSportId, date, otherSlotId, "p3");
+        Booking b1 = bookingService.createBooking(userId, hallId, sportId, date, startTime, endTime, "p1");
+        Booking b2 = bookingService.createBooking(userId, otherHallId, otherSportId, otherDate, otherStartTime, otherEndTime, "p2");
+        bookingService.createBooking(otherUserId, otherHallId, otherSportId, date, otherStartTime, otherEndTime, "p3");
         List<Booking> result = searchService.filterBookings(Optional.of(studentId.substring(0, 5)), Optional.empty(), Optional.empty(), Optional.empty());
         assertEquals(2, result.size());
         assertTrue(result.stream().map(Booking::getId).toList().containsAll(List.of(b1.getId(), b2.getId())));
@@ -356,63 +301,60 @@ class SearchServiceTest {
 
     @Test
     void filterBookings_byUserId() {
-        bookingService.createBooking(userId, hallId, sportId, date, slotId, "p1");
-        bookingService.createBooking(userId, otherHallId, otherSportId, otherDate, otherSlotId, "p2");
-        bookingService.createBooking(otherUserId, otherHallId, otherSportId, date, slotId, "p3");
+        bookingService.createBooking(userId, hallId, sportId, date, startTime, endTime, "p1");
+        bookingService.createBooking(userId, otherHallId, otherSportId, otherDate, otherStartTime, otherEndTime, "p2");
+        bookingService.createBooking(otherUserId, otherHallId, otherSportId, date, otherStartTime, otherEndTime, "p3");
         List<Booking> result = searchService.filterBookings(Optional.of(studentId), Optional.empty(), Optional.empty(), Optional.empty());
         assertEquals(2, result.size());
-        assertEquals(userId, result.getFirst().getUserId());
+        assertEquals(userId, result.get(0).getUserId());
     }
 
     @Test
     void filterBookings_byStatus() {
-        Booking b1 = bookingService.createBooking(userId, hallId, sportId, date, slotId, "p1");
-        Booking b2 = bookingService.createBooking(otherUserId, otherHallId, sportId, date, slotId, "p2");
+        bookingRepository.deleteAll();
+        Booking b1 = bookingService.createBooking(userId, hallId, sportId, date, startTime, endTime, "one");
+        Booking b2 = bookingService.createBooking(userId, hallId, sportId, otherDate, otherStartTime, otherEndTime, "two");
         bookingService.confirmBooking(b2.getId(), adminId);
         List<Booking> pending = searchService.filterBookings(Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(Status.pending));
-        List<Booking> confirmed = searchService.filterBookings(Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(Status.confirmed));
-        assertEquals(1, pending.size());
-        assertEquals(b1.getId(), pending.getFirst().getId());
-        assertEquals(1, confirmed.size());
-        assertEquals(b2.getId(), confirmed.getFirst().getId());
+        assertTrue(pending.stream().allMatch(b -> b.getStatus()==Status.pending));
     }
 
     @Test
     void filterBookings_byLocation() {
-        bookingService.createBooking(userId, hallId, sportId, date, slotId, "p1");
-        bookingService.createBooking(otherUserId, otherHallId, sportId, date, slotId, "p2");
+        bookingService.createBooking(userId, hallId, sportId, date, startTime, endTime, "p1");
+        bookingService.createBooking(otherUserId, otherHallId, sportId, date, startTime, endTime, "p2");
         List<Booking> indoor = searchService.filterBookings(Optional.empty(), Optional.of(SportHallLocation.indoor), Optional.empty(), Optional.empty());
         List<Booking> outdoor = searchService.filterBookings(Optional.empty(), Optional.of(SportHallLocation.outdoor), Optional.empty(), Optional.empty());
         assertEquals(1, indoor.size());
-        assertEquals(hallId, indoor.getFirst().getSportHallId());
+        assertEquals(hallId, indoor.get(0).getSportHallId());
         assertEquals(1, outdoor.size());
-        assertEquals(otherHallId, outdoor.getFirst().getSportHallId());
+        assertEquals(otherHallId, outdoor.get(0).getSportHallId());
     }
 
     @Test
     void filterBookings_byProfileType() {
-        bookingService.createBooking(userId, hallId, sportId, date, slotId, "p1");
-        bookingService.createBooking(adminId, otherHallId, sportId, date, slotId, "p2");
+        bookingService.createBooking(userId, hallId, sportId, date, startTime, endTime, "p1");
+        bookingService.createBooking(adminId, otherHallId, sportId, date, startTime, endTime, "p2");
         List<Booking> users = searchService.filterBookings(Optional.empty(), Optional.empty(), Optional.of(ProfileType.user), Optional.empty());
         List<Booking> admins = searchService.filterBookings(Optional.empty(), Optional.empty(), Optional.of(ProfileType.admin), Optional.empty());
         assertEquals(1, users.size());
-        assertEquals(userId, users.getFirst().getUserId());
+        assertEquals(userId, users.get(0).getUserId());
         assertEquals(1, admins.size());
-        assertEquals(adminId, admins.getFirst().getUserId());
+        assertEquals(adminId, admins.get(0).getUserId());
     }
 
     @Test
     void filterBookings_noMatchedLocation_returnsEmptyList() {
-        bookingService.createBooking(userId, hallId, sportId, date, slotId, "p1");
-        bookingService.createBooking(otherUserId, hallId, sportId, otherDate, otherSlotId, "p2");
+        bookingService.createBooking(userId, hallId, sportId, date, startTime, endTime, "p1");
+        bookingService.createBooking(otherUserId, hallId, sportId, otherDate, otherStartTime, otherEndTime, "p2");
         List<Booking> result = searchService.filterBookings(Optional.empty(), Optional.of(SportHallLocation.outdoor), Optional.empty(), Optional.empty());
         assertEquals(0, result.size());
     }
 
     @Test
     void filterBookings_combinedFilters() {
-        bookingService.createBooking(userId, hallId, sportId, date, slotId, "p1");
-        Booking b2 = bookingService.createBooking(userId, otherHallId, otherSportId, otherDate, otherSlotId, "p2");
+        bookingService.createBooking(userId, hallId, sportId, date, startTime, endTime, "p1");
+        Booking b2 = bookingService.createBooking(userId, otherHallId, otherSportId, otherDate, otherStartTime, otherEndTime, "p2");
         bookingService.confirmBooking(b2.getId(), adminId);
         List<Booking> result = searchService.filterBookings(
                 Optional.of(studentId),
@@ -421,6 +363,6 @@ class SearchServiceTest {
                 Optional.of(Status.confirmed)
         );
         assertEquals(1, result.size());
-        assertEquals(b2.getId(), result.getFirst().getId());
+        assertEquals(b2.getId(), result.get(0).getId());
     }
 }

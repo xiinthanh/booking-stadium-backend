@@ -6,7 +6,6 @@ import com.ouroboros.pestadiumbookingbe.model.*;
 import com.ouroboros.pestadiumbookingbe.repository.BookingRepository;
 import com.ouroboros.pestadiumbookingbe.repository.ProfileRepository;
 import com.ouroboros.pestadiumbookingbe.repository.SportHallRepository;
-import com.ouroboros.pestadiumbookingbe.repository.TimeSlotRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.stereotype.Service;
@@ -22,8 +21,6 @@ public class SearchService {
 
     @Autowired
     private SportHallRepository sportHallRepository;
-    @Autowired
-    private TimeSlotRepository timeSlotRepository;
     @Autowired
     private BookingRepository bookingRepository;
     @Autowired
@@ -45,23 +42,6 @@ public class SearchService {
         } catch (Exception e) {
             logger.error("Error fetching sport hall with ID: {}", id, e);
             throw new RuntimeException("Unexpected error fetching sport hall");
-        }
-    }
-
-    public TimeSlot getTimeSlotById(UUID id) {
-        logger.info("Fetching time slot with ID: {}", id);
-        try {
-            Optional<TimeSlot> foundTimeSlot = timeSlotRepository.findById(id);
-            return foundTimeSlot
-                    .orElseThrow(() -> new BadRequestException("Time slot not found"));
-        } catch (DataAccessResourceFailureException ex) {
-            logger.error("Database error fetching time slot with ID: {}", id, ex);
-            throw new ServiceUnavailableException("Service unavailable due to database issues");
-        } catch (BadRequestException e) {
-            throw e;
-        } catch (Exception e) {
-            logger.error("Error fetching time slot with ID: {}", id, e);
-            throw new RuntimeException("Unexpected error fetching time slot");
         }
     }
 

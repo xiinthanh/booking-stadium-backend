@@ -3,6 +3,7 @@ package com.ouroboros.pestadiumbookingbe.model;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -17,17 +18,11 @@ public class Booking {
     @Column(name = "sport_hall_id", nullable = false)
     private UUID sportHallId;
 
-    @Column(name = "sportId", nullable = false)
-    private UUID sportId;
-
     @Column(name = "userId", nullable = false)
     private UUID userId;
 
     @Column(name = "booking_date", nullable = false)
     private LocalDate bookingDate;
-
-    @Column(name = "time_slot_id", nullable = false)
-    private UUID timeSlotId;
 
     @Column(nullable = false)
     private Integer participants = 1;
@@ -57,6 +52,12 @@ public class Booking {
     @Column(name = "updated_at", columnDefinition = "timestamp with time zone")
     private OffsetDateTime updatedAt = OffsetDateTime.now();
 
+    @Column(name = "start_time", nullable = false)
+    private LocalTime startTime;
+
+    @Column(name = "end_time", nullable = false)
+    private LocalTime endTime;
+
     // Getters and setters
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
@@ -64,17 +65,11 @@ public class Booking {
     public UUID getSportHallId() { return sportHallId; }
     public void setSportHallId(UUID sportHallId) { this.sportHallId = sportHallId; }
 
-    public UUID getSportId() { return sportId; }
-    public void setSportId(UUID sportId) { this.sportId = sportId; }
-
     public UUID getUserId() { return userId; }
     public void setUserId(UUID userId) { this.userId = userId; }
 
     public LocalDate getBookingDate() { return bookingDate; }
     public void setBookingDate(LocalDate bookingDate) { this.bookingDate = bookingDate; }
-
-    public UUID getTimeSlotId() { return timeSlotId; }
-    public void setTimeSlotId(UUID timeSlotId) { this.timeSlotId = timeSlotId; }
 
     public Integer getParticipants() { return participants; }
     public void setParticipants(Integer participants) { this.participants = participants; }
@@ -102,4 +97,20 @@ public class Booking {
 
     public OffsetDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(OffsetDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public LocalTime getStartTime() {
+        return startTime;
+    }
+
+    public void setStartTime(LocalTime startTime) {
+        this.startTime = startTime;
+    }
+
+    public LocalTime getEndTime() {
+        return endTime;
+    }
+
+    public void setEndTime(LocalTime endTime) {
+        this.endTime = endTime;
+    }
 }

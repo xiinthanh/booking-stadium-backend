@@ -42,7 +42,8 @@ public class BookingController {
             bookingRequest.getSportHallId(),
             bookingRequest.getSportId(),
             bookingRequest.getDate(),
-            bookingRequest.getTimeSlotId(),
+            bookingRequest.getStartTime(),
+            bookingRequest.getEndTime(),
             bookingRequest.getPurpose()
         );
         return ResponseEntity.ok(booking);
@@ -97,7 +98,8 @@ public class BookingController {
             bookingRequest.getSportHallId(),
             bookingRequest.getSportId(),
             bookingRequest.getDate(),
-            bookingRequest.getTimeSlotId(),
+            bookingRequest.getStartTime(),
+            bookingRequest.getEndTime(),
             bookingRequest.getPurpose()
         );
         return ResponseEntity.ok(updated);
