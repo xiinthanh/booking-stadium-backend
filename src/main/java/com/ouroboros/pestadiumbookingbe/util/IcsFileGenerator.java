@@ -30,8 +30,8 @@ public class IcsFileGenerator {
             logger.info("Booking date or time is null when generating ics file");
             return new ByteArrayOutputStream();
         }
-        if (bookingSummary.getSportHallName() == null || bookingSummary.getPurpose() == null) {
-            logger.info("Sport hall name or purpose is null when generating ics file");
+        if (bookingSummary.getSportHallName() == null) {
+            logger.info("Sport hall name is null when generating ics file");
             return new ByteArrayOutputStream();
         }
 
@@ -53,7 +53,6 @@ public class IcsFileGenerator {
             organizer.getParameters().add(new Cn("Group Ouroboros"));
             meeting.getProperties().add(organizer);
 
-            meeting.getProperties().add(new Description("Purpose: " + bookingSummary.getPurpose()));
             meeting.getProperties().add(new Uid(UUID.randomUUID().toString()));
             meeting.getProperties().add(new Location("Sport Hall: " + bookingSummary.getSportHallName()));
 

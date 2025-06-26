@@ -23,7 +23,7 @@ public class BookingMapper {
     public BookingSummary toBookingSummary(Booking booking) {
         if (booking == null) {
             logger.warn("Booking is null, returning empty BookingSummary");
-            return new BookingSummary("", null, null, null, "", "", "");
+            return new BookingSummary("", null, null, null, "", "");
         }
 
         SportHall sportHall = null;
@@ -42,7 +42,6 @@ public class BookingMapper {
                 booking.getStartTime(),
                 booking.getEndTime(),
                 sportHall != null ? sportHall.getName() : null,
-                booking.getPurpose(),
                 canceledByProfile != null ? canceledByProfile.getEmail() : ""
         );
     }

@@ -112,12 +112,12 @@ public class BookingService {
     }
 
     @Transactional(timeout = 2)  // 2 seconds timeout to prevent long-running transactions
-    public Booking createBooking(UUID userId, UUID sportHallId, UUID sportId, LocalDate date, LocalTime startTime, LocalTime endTime, String purpose) {
-        logger.info("Creating booking for userId: {}, sportHallId: {}, sportId: {}, date: {}, startTime: {}, endTime: {}, purpose: {}", userId, sportHallId, sportId, date, startTime, endTime, purpose);
+    public Booking createBooking(UUID userId, UUID sportHallId, UUID sportId, LocalDate date, LocalTime startTime, LocalTime endTime) {
+        logger.info("Creating booking for userId: {}, sportHallId: {}, sportId: {}, date: {}, startTime: {}, endTime: {}", userId, sportHallId, sportId, date, startTime, endTime);
         try {
             // Validate input parameters
-            if (isInvalidUser(userId) || isInvalidSportHall(sportHallId) || isInvalidBookingDate(date) || isInvalidTimeSlot(startTime,endTime) || purpose == null || purpose.isEmpty()) {
-                logger.error("Invalid input parameters: userId={}, sportHallId={}, sportId={}, date={}, purpose={}", userId, sportHallId, date, purpose);
+            if (isInvalidUser(userId) || isInvalidSportHall(sportHallId) || isInvalidBookingDate(date) || isInvalidTimeSlot(startTime,endTime)) {
+                logger.error("Invalid input parameters: userId={}, sportHallId={}, sportId={}, date={}", userId, sportHallId, date);
                 throw new BadRequestException("Invalid input parameters.");
             }
 
@@ -139,7 +139,6 @@ public class BookingService {
             booking.setStartTime(startTime);
             booking.setEndTime(endTime);
             booking.setStatus(Status.pending);
-            booking.setPurpose(purpose);
             booking.setCreatedAt(OffsetDateTime.now());
             booking.setUpdatedAt(OffsetDateTime.now());
 
@@ -267,14 +266,14 @@ public class BookingService {
     }
 
     @Transactional(timeout = 2)  // 2 seconds timeout to prevent long-running transactions
-    public Booking modifyBooking(UUID bookingId, UUID modifiedByUserId, UUID userId, UUID sportHallId, UUID sportId, LocalDate date, LocalTime startTime, LocalTime endTime, String purpose) {
-        logger.info("Modifying booking id={}, userId={}, sportHallId={}, sportId={}, date={}, startTime={}, endTime={}, purpose={}", bookingId, userId, sportHallId, sportId, date, startTime, endTime, purpose);
+    public Booking modifyBooking(UUID bookingId, UUID modifiedByUserId, UUID userId, UUID sportHallId, UUID sportId, LocalDate date, LocalTime startTime, LocalTime endTime) {
+        logger.info("Modifying booking id={}, userId={}, sportHallId={}, sportId={}, date={}, startTime={}, endTime={}", bookingId, userId, sportHallId, sportId, date, startTime, endTime);
         try {
             if (bookingId == null || modifiedByUserId == null ||
                     isInvalidUser(modifiedByUserId) || isInvalidUser(userId) ||
                     isInvalidSportHall(sportHallId) || isInvalidTimeSlot(startTime, endTime) ||
-                    isInvalidBookingDate(date) || purpose == null || purpose.isEmpty()) {
-                logger.error("Invalid input parameters for booking modification: bookingId={}, modifiedByUserId={}, userId={}, sportHallId={}, sportId={}, date={}, startTime={}, endTime={}, purpose={}", bookingId, modifiedByUserId, userId, sportHallId, sportId, date, startTime, endTime, purpose);
+                    isInvalidBookingDate(date)) {
+                logger.error("Invalid input parameters for booking modification: bookingId={}, modifiedByUserId={}, userId={}, sportHallId={}, sportId={}, date={}, startTime={}, endTime={}", bookingId, modifiedByUserId, userId, sportHallId, sportId, date, startTime, endTime);
                 throw new BadRequestException("Invalid input parameters.");
             }
 
@@ -312,7 +311,6 @@ public class BookingService {
             booking.setBookingDate(date);
             booking.setStartTime(startTime);
             booking.setEndTime(endTime);
-            booking.setPurpose(purpose);
             booking.setUpdatedAt(OffsetDateTime.now());
             booking.setCanceledAt(null);  // Clear cancellation details
             booking.setCanceledBy(null);  // Clear cancellation details

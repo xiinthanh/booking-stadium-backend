@@ -11,7 +11,6 @@ public class BookingRequest {
     private LocalDate date;
     private LocalTime startTime;
     private LocalTime endTime;
-    private String purpose;
 
     // Getters and setters
     public UUID getUserId() {
@@ -36,14 +35,6 @@ public class BookingRequest {
 
     public void setDate(LocalDate date) {
         this.date = date;
-    }
-
-    public String getPurpose() {
-        return purpose;
-    }
-
-    public void setPurpose(String purpose) {
-        this.purpose = purpose;
     }
 
     public UUID getSportId() {

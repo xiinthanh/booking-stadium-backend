@@ -27,9 +27,6 @@ public class Booking {
     @Column(nullable = false)
     private Integer participants = 1;
 
-    @Column(columnDefinition = "text")
-    private String purpose;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private Status status = Status.pending;
@@ -73,9 +70,6 @@ public class Booking {
 
     public Integer getParticipants() { return participants; }
     public void setParticipants(Integer participants) { this.participants = participants; }
-
-    public String getPurpose() { return purpose; }
-    public void setPurpose(String purpose) { this.purpose = purpose; }
 
     public Status getStatus() { return status; }
     public void setStatus(Status status) { this.status = status; }
